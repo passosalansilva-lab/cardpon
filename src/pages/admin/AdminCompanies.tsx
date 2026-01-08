@@ -252,20 +252,13 @@ export default function AdminCompanies() {
           if (actionModal.action === 'approve') {
             try {
               // Buscar email do owner
-              const { data: userData } = await supabase.auth.admin.getUserById(actionModal.company.owner_id);
-              const ownerEmail = userData?.user?.email;
-              const ownerName = userData?.user?.user_metadata?.full_name;
+        await supabase.functions.invoke('send-company-approval-email', {
+            body: {
+              companyId: actionModal.company.id,
+              ownerId: actionModal.company.owner_id,
+            },
+          });
 
-              if (ownerEmail) {
-                await supabase.functions.invoke('send-company-approval-email', {
-                  body: {
-                    companyName: actionModal.company.name,
-                    ownerEmail,
-                    ownerName,
-                    menuUrl: `https://cardapioon.com.br/dashboard`,
-                  },
-                });
-              }
             } catch (emailError) {
               console.error('Error sending approval email:', emailError);
               // Não bloqueia a aprovação se o email falhar

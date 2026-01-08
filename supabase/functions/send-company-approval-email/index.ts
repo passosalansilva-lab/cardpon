@@ -1,122 +1,170 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
+
+const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY
+);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-interface ApprovalEmailRequest {
-  companyName: string;
-  ownerEmail: string;
-  ownerName?: string;
-  menuUrl: string;
-}
-
-const handler = async (req: Request): Promise<Response> => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { status: 200, headers: corsHeaders });
   }
 
   try {
-    const { companyName, ownerEmail, ownerName, menuUrl }: ApprovalEmailRequest = await req.json();
+    const { companyId, ownerId } = await req.json();
 
-    if (!companyName || !ownerEmail) {
+    if (!companyId || !ownerId) {
       return new Response(
-        JSON.stringify({ error: "companyName e ownerEmail são obrigatórios" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ error: "companyId e ownerId são obrigatórios" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Sending approval email to ${ownerEmail} for company ${companyName}`);
+    // 🔎 Buscar empresa
+    const { data: company } = await supabase
+      .from("companies")
+      .select("name, slug")
+      .eq("id", companyId)
+      .single();
+
+    // 🔎 Buscar owner
+    const { data: user } = await supabase.auth.admin.getUserById(ownerId);
+
+    if (!company || !user?.user?.email) {
+      throw new Error("Empresa ou usuário não encontrado");
+    }
+
+    const menuUrl = `https://cardpon.com.br/menu/${company.slug}`;
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "CardapioOn <noreply@cardapioon.com.br>",
-        to: [ownerEmail],
-        subject: `🎉 Parabéns! Sua empresa ${companyName} foi aprovada!`,
+        from: "CardpOn <contato@cardpon.com.br>",
+        to: [user.user.email],
+        subject: `🎉 Sua empresa ${company.name} foi aprovada!`,
         html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-              <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border-radius: 16px 16px 0 0; padding: 40px 30px; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Parabéns!</h1>
-                <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0; font-size: 16px;">Sua empresa foi aprovada</p>
-              </div>
-              
-              <div style="background: white; padding: 40px 30px; border-radius: 0 0 16px 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
-                  Olá${ownerName ? ` <strong>${ownerName}</strong>` : ''},
-                </p>
-                
-                <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
-                  Temos uma ótima notícia! Sua empresa <strong style="color: #22c55e;">${companyName}</strong> foi aprovada e já está pronta para receber pedidos no CardapioOn! 🚀
-                </p>
-                
-                <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
-                  <h3 style="color: #166534; margin: 0 0 10px; font-size: 16px;">📋 Próximos passos:</h3>
-                  <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.8;">
-                    <li>Configure os dados da sua loja (horários, endereço, formas de pagamento)</li>
-                    <li>Adicione suas categorias e produtos ao cardápio</li>
-                    <li>Personalize as cores e logo da sua marca</li>
-                    <li>Comece a receber pedidos!</li>
-                  </ul>
-                </div>
-                
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${menuUrl}" style="display: inline-block; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                    Acessar Minha Loja
-                  </a>
-                </div>
-                
-                <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 20px 0 0; text-align: center;">
-                  Ficou com dúvidas? Entre em contato com nosso suporte!
-                </p>
-              </div>
-              
-              <div style="text-align: center; padding: 30px 20px;">
-                <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                  © ${new Date().getFullYear()} CardapioOn. Todos os direitos reservados.
-                </p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Empresa aprovada</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f5; font-family:Arial, Helvetica, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5; padding:20px 0;">
+    <tr>
+      <td align="center">
+        <!-- Container -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background:#ffffff; border-radius:12px; overflow:hidden;">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background:#111827; padding:24px; text-align:center;">
+              <h1 style="margin:0; font-size:24px; color:#ffffff;">
+                🎉 Empresa aprovada!
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding:32px;">
+              <p style="margin:0 0 16px; font-size:16px; color:#111827;">
+                Parabéns!
+              </p>
+
+              <p style="margin:0 0 24px; font-size:15px; color:#374151; line-height:1.6;">
+                Sua empresa <strong>${company.name}</strong> foi aprovada com sucesso no
+                <strong>CardpOn</strong>.
+                <br />
+                Agora seu cardápio já pode ser acessado online e compartilhado com seus clientes.
+              </p>
+
+              <!-- Button -->
+              <table cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <a
+                      href="${menuUrl}"
+                      target="_blank"
+                      style="
+                        display:inline-block;
+                        padding:14px 28px;
+                        background-color:#16a34a;
+                        color:#ffffff;
+                        font-size:16px;
+                        font-weight:bold;
+                        text-decoration:none;
+                        border-radius:8px;
+                      "
+                    >
+                      🍽️ Acessar meu cardápio
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:32px 0 0; font-size:13px; color:#6b7280; text-align:center;">
+                Se tiver qualquer dúvida, é só responder este email.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb; padding:20px; text-align:center;">
+              <p style="margin:0; font-size:12px; color:#9ca3af;">
+                © ${new Date().getFullYear()} CardpOn — Seu cardápio online
+              </p>
+              <p style="margin:6px 0 0; font-size:12px; color:#9ca3af;">
+                <a href="https://cardpon.com.br" style="color:#9ca3af; text-decoration:none;">
+                  cardpon.com.br
+                </a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Container -->
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`
+,
       }),
     });
 
     if (!res.ok) {
-      const errorData = await res.text();
-      console.error("Resend API error:", errorData);
-      throw new Error(`Failed to send email: ${errorData}`);
+      throw new Error(await res.text());
     }
 
-    const data = await res.json();
-    console.log("Approval email sent successfully:", data);
-
     return new Response(
-      JSON.stringify({ success: true, data }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      JSON.stringify({ success: true }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
-    console.error("Error sending approval email:", error);
+  } catch (err: any) {
+    console.error(err);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      JSON.stringify({ error: err.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-};
-
-serve(handler);
+});
