@@ -22,7 +22,7 @@ serve(async (req) => {
       slug = last && last !== "og-share" ? last : undefined;
     }
 
-    const origin = url.searchParams.get("origin") || "https://cardpon.com.br";
+    const origin = url.searchParams.get("origin") || "https://www.cardpondelivery.com";
 
     console.log(`[og-share] slug=${slug} origin=${origin}`);
 
