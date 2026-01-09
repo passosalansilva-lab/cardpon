@@ -82,7 +82,7 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "CardpOn <contato@cardpon.com.br>",
+        from: "CardpOn <contato@cardpondelivery.com>",
         to: [email],
         subject: "Código de verificação - CardpOn",
         html: `
@@ -96,7 +96,7 @@ const handler = async (req: Request): Promise<Response> => {
             <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
               <!-- Header with Logo -->
               <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-radius: 20px 20px 0 0; padding: 40px 32px; text-align: center;">
-                <img src="https://gwixvxdwhpjlllhnnnev.supabase.co/storage/v1/object/public/assets/logo-cardapio-on-new.png" alt="CardpOn" style="height: 60px; margin-bottom: 16px;" />
+                <img src="https://uyaymtikndembadyljib.supabase.co/storage/v1/object/public/assets/logo-cardapio-on-new.png" alt="CardpOn" style="height: 60px; margin-bottom: 16px;" />
                 <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 14px; font-weight: 500;">Seu cardápio digital inteligente</p>
               </div>
               
