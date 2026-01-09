@@ -1,4 +1,4 @@
-name: Deploy React/Vite to Apache
+name: Deploy React/Vite to Production
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Clean remote server
+      - name: Clean remote folder
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -32,7 +32,7 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
           script: |
-            rm -rf /var/www/html/*
+            rm -rf /var/www/cardpon/*
 
       - name: Copy build to server
         uses: appleboy/scp-action@v0.1.2
@@ -42,9 +42,9 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
           source: "dist/*, .htaccess"
-          target: "/var/www/html"
+          target: "/var/www/cardpon"
 
-      - name: Set permissions on server
+      - name: Set permissions
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -52,4 +52,4 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
           script: |
-            chown -R www-data:www-data /var/www/html/
+            chown -R www-data:www-data /var/www/cardpon/
