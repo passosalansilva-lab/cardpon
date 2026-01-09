@@ -707,7 +707,7 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
           <p className="text-sm text-destructive">{step2Form.formState.errors.email.message}</p>
         )}
 
-       <p className="text-sm text-red-600">⚠️ Não use e-mail temporário, aprovação da empresa é necessária.</p>
+       <p className="text-sm text-red-600">⚠️ não use e-mail temporário, aprovação da empresa é necessária.</p>
 
       </div>
 
