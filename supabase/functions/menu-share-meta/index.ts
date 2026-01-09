@@ -34,7 +34,7 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const slug = extractSlug(url);
-    const origin = url.searchParams.get("origin") || "https://cardpon.com.br";
+    const origin = url.searchParams.get("origin") || "https://www.cardpondelivery.com";
 
     const userAgent = req.headers.get("user-agent") || "";
     const crawler = isSocialCrawler(userAgent);

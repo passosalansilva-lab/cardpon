@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const slug = url.searchParams.get("slug")?.trim();
-    const origin = url.searchParams.get("origin") || "https://cardpon.com.br";
+    const origin = url.searchParams.get("origin") || "https://www.cardpondelivery.com";
 
     console.log(`[menu-share-data] Request for slug: ${slug}, origin: ${origin}`);
 
