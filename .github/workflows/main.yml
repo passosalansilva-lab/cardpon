@@ -28,12 +28,8 @@ jobs:
       - name: Build project
         run: npm run build
 
-<<<<<<< HEAD
-      - name: Clean remote folder
-=======
       # 5️⃣ Limpar root do servidor
       - name: Clean remote root
->>>>>>> 5dcee464e31d5492e17a6f8becd535f6e126c901
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -41,35 +37,23 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
           script: |
-<<<<<<< HEAD
-            rm -rf /var/www/cardpon/*
-
-      - name: Copy build to server
-=======
             mkdir -p /var/www/html
             rm -rf /var/www/html/*
 
       # 6️⃣ Copiar build e .htaccess para o root
       - name: Copy build and .htaccess to root
->>>>>>> 5dcee464e31d5492e17a6f8becd535f6e126c901
         uses: appleboy/scp-action@v0.1.2
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
-<<<<<<< HEAD
-          source: "dist/*, .htaccess"
-          target: "/var/www/cardpon"
-
-=======
           source: "dist/, .htaccess"   # build + arquivo .htaccess
           target: "/var/www/html"
           strip_components: 1          # remove a pasta dist
           rm: true                     # remove arquivos antigos no destino
 
       # 7️⃣ Ajustar permissões
->>>>>>> 5dcee464e31d5492e17a6f8becd535f6e126c901
       - name: Set permissions
         uses: appleboy/ssh-action@v0.1.6
         with:
@@ -78,8 +62,4 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
           script: |
-<<<<<<< HEAD
-            chown -R www-data:www-data /var/www/cardpon/
-=======
             chown -R www-data:www-data /var/www/html/
->>>>>>> 5dcee464e31d5492e17a6f8becd535f6e126c901
