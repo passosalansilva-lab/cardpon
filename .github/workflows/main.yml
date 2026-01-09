@@ -40,28 +40,18 @@ jobs:
             mkdir -p /var/www/html/cardpon
             rm -rf /var/www/html/cardpon/*
 
-      # 6️⃣ Copiar conteúdo da build para a pasta cardpon
-      - name: Copy build to server
+      # 6️⃣ Copiar build e arquivos adicionais para a pasta cardpon
+      - name: Copy build and additional files to server
         uses: appleboy/scp-action@v0.1.2
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
-          source: "dist/*"
+          source: "dist/, .htaccess"      # build + arquivos adicionais
           target: "/var/www/html/cardpon"
-          rm: true  # remove arquivos antigos no destino antes de copiar
-
-      # Se você precisar copiar arquivos adicionais como .htaccess
-      - name: Copy additional files
-        uses: appleboy/scp-action@v0.1.2
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.DEPLOY_KEY }}
-          port: 22
-          source: ".htaccess"
-          target: "/var/www/html/cardpon"
+          strip_components: 1             # remove a pasta dist
+          rm: true                        # remove arquivos antigos no destino
 
       # 7️⃣ Ajustar permissões
       - name: Set permissions
