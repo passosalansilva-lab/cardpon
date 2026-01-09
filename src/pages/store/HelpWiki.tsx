@@ -176,8 +176,57 @@ export default function HelpWiki() {
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
+
+            
           </CardContent>
         </Card>
+
+        <Card className="border-dashed">
+  <CardContent className="pt-6 space-y-4">
+    <h2 className="text-lg font-semibold">Precisa de ajuda agora?</h2>
+
+    <p className="text-sm text-muted-foreground">
+      Se você não encontrou sua dúvida na Central de Ajuda, fale diretamente com o time do CardpOn.
+      Nosso suporte é focado em resolver rápido para você continuar vendendo sem parar.
+    </p>
+
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="rounded-lg border p-4 space-y-2">
+        <p className="font-medium">💬 WhatsApp</p>
+        <p className="text-sm text-muted-foreground">
+          Atendimento rápido para problemas em pedidos, pagamentos ou entregas.
+        </p>
+        <a
+          href="https://wa.me/5518996581614"
+          target="_blank"
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          Falar no WhatsApp →
+        </a>
+      </div>
+
+      <div className="rounded-lg border p-4 space-y-2">
+        <p className="font-medium">📧 Email</p>
+        <p className="text-sm text-muted-foreground">
+          Para dúvidas, problemas técnicos ou solicitações mais detalhadas.
+        </p>
+        <a
+          href="mailto:contato@cardpondelivery.com"
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          contato@cardpondelivery.com
+        </a>
+      </div>
+    </div>
+
+    <div className="rounded-lg bg-muted p-4 text-sm">
+      ⏱️ <strong>Horário de atendimento:</strong>  
+      Segunda a sábado, das 9h às 23h.  
+ 
+    </div>
+  </CardContent>
+</Card>
+
       </div>
     </DashboardLayout>
   );
