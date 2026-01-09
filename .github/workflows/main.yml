@@ -32,7 +32,7 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
           script: |
-            rm -rf /var/www/cardpon/*
+            rm -rf /var/www/html/cardpon/*
 
       - name: Copy build to server
         uses: appleboy/scp-action@v0.1.2
@@ -42,7 +42,7 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
           source: "dist/*, .htaccess"
-          target: "/var/www/cardpon"
+          target: "/var/www/html/cardpon"
 
       - name: Set permissions
         uses: appleboy/ssh-action@v0.1.6
@@ -52,4 +52,4 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
           script: |
-            chown -R www-data:www-data /var/www/cardpon/
+            chown -R www-data:www-data /var/www/html/cardpon/
