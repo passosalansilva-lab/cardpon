@@ -10,20 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout do repositório
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      # 2️⃣ Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
+      # 3️⃣ Instalar dependências
       - name: Install dependencies
         run: npm install
 
+      # 4️⃣ Build do projeto
       - name: Build project
         run: npm run build
 
+      # 5️⃣ Limpar pasta remota
       - name: Clean remote folder
         uses: appleboy/ssh-action@v0.1.6
         with:
@@ -32,8 +37,10 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
           script: |
+            mkdir -p /var/www/html/cardpon
             rm -rf /var/www/html/cardpon/*
 
+      # 6️⃣ Copiar conteúdo da build para a pasta cardpon
       - name: Copy build to server
         uses: appleboy/scp-action@v0.1.2
         with:
@@ -41,9 +48,11 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
+          # IMPORTANT: copiar apenas o conteúdo de dist
           source: "dist/*, .htaccess"
           target: "/var/www/html/cardpon"
 
+      # 7️⃣ Ajustar permissões
       - name: Set permissions
         uses: appleboy/ssh-action@v0.1.6
         with:
