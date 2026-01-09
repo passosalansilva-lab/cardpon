@@ -46,7 +46,7 @@ serve(async (req) => {
       throw new Error("Empresa ou usuário não encontrado");
     }
 
-    const menuUrl = `https://cardpon.com.br/menu/${company.slug}`;
+    const menuUrl = `https://www.cardpondelivery.com/menu/${company.slug}`;
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -55,7 +55,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "CardpOn <contato@cardpon.com.br>",
+        from: "CardpOn <contato@cardpondelivery.com>",
         to: [user.user.email],
         subject: `🎉 Sua empresa ${company.name} foi aprovada!`,
         html: `
@@ -133,7 +133,7 @@ serve(async (req) => {
                 © ${new Date().getFullYear()} CardpOn — Seu cardápio online
               </p>
               <p style="margin:6px 0 0; font-size:12px; color:#9ca3af;">
-                <a href="https://cardpon.com.br" style="color:#9ca3af; text-decoration:none;">
+                <a href="https://www.cardpondelivery.com/" style="color:#9ca3af; text-decoration:none;">
                   cardpon.com.br
                 </a>
               </p>
