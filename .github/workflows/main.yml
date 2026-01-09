@@ -24,7 +24,7 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Deploy to Apache server via SSH
+      - name: Clean remote server
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -33,6 +33,23 @@ jobs:
           port: 22
           script: |
             rm -rf /var/www/html/*
-            cp -r dist/* /var/www/html/
-            cp .htaccess /var/www/html/
+
+      - name: Copy build to server
+        uses: appleboy/scp-action@v0.1.2
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          port: 22
+          source: "dist/*, .htaccess"
+          target: "/var/www/html"
+
+      - name: Set permissions on server
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          port: 22
+          script: |
             chown -R www-data:www-data /var/www/html/
