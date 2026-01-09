@@ -17,7 +17,7 @@ export default function DriverLogin() {
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [companyLoading, setCompanyLoading] = useState(!!companySlug);
 
-  // Load company info if slug is provided
+  // Carrega nome da empresa se houver slug na URL
   useEffect(() => {
     const loadCompanyInfo = async () => {
       if (!companySlug) {
@@ -28,12 +28,12 @@ export default function DriverLogin() {
       try {
         const { data: company, error } = await supabase
           .from('companies')
-          .select('name, logo_url')
+          .select('name')
           .eq('slug', companySlug)
           .maybeSingle();
 
         if (error) throw error;
-        
+
         if (company) {
           setCompanyName(company.name);
         } else {
@@ -41,8 +41,10 @@ export default function DriverLogin() {
             description: 'O link de acesso pode estar incorreto.',
           });
         }
-      } catch (error) {
-        console.error('Error loading company:', error);
+      } catch {
+        toast.error('Link inválido', {
+          description: 'O link de acesso está incorreto ou expirado.',
+        });
       } finally {
         setCompanyLoading(false);
       }
@@ -51,37 +53,34 @@ export default function DriverLogin() {
     loadCompanyInfo();
   }, [companySlug]);
 
-  // Check if user is already logged in
+  // Verifica se já está logado
   useEffect(() => {
     if (authLoading) return;
-    
+
     if (user) {
       const isDriver = hasRole('delivery_driver');
       const isStoreOwner = hasRole('store_owner');
       const isSuperAdmin = hasRole('super_admin');
-      
-      // If user is a driver, redirect to driver dashboard
+
       if (isDriver) {
         navigate('/driver', { replace: true });
         return;
       }
-      
-      // If user is store owner or admin (not a driver), sign them out first
+
       if (isStoreOwner || isSuperAdmin) {
         toast.info('Você está logado como lojista', {
-          description: 'Faça logout para acessar como entregador',
+          description: 'Faça logout para acessar como entregador.',
         });
         signOut();
       }
     }
   }, [user, authLoading, hasRole, navigate, signOut]);
 
-  // Show loading while checking auth
   if (authLoading || companyLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
           <p className="text-muted-foreground">Carregando...</p>
         </div>
       </div>
@@ -90,7 +89,7 @@ export default function DriverLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email.trim()) {
       toast.error('Digite seu email');
       return;
@@ -99,40 +98,67 @@ export default function DriverLogin() {
     setLoading(true);
 
     try {
-      // Login direto via edge function - passando o slug da empresa se existir
-      const { data: loginData, error: loginError } = await supabase.functions.invoke(
-        'driver-direct-login',
-        { body: { email: email.toLowerCase().trim(), companySlug: companySlug || null } }
-      );
+      const { data: loginData, error: invokeError } = await supabase.functions.invoke('driver-direct-login', {
+        body: {
+          email: email.toLowerCase().trim(),
+          companySlug: companySlug || null,
+        },
+      });
 
-      if (loginError) throw loginError;
-
-      if (loginData?.error) {
-        toast.error('Erro ao fazer login', {
-          description: loginData.error,
+      // Erro real de rede ou crash da função (500, timeout, etc.)
+      if (invokeError) {
+        toast.error('Falha ao logar', {
+          description: 'Email pode não estar cadastrado. Acione o logista.',
         });
-        setLoading(false);
         return;
       }
 
+      // Erros controlados pela função (status 400)
+      if (loginData?.error) {
+        let title = 'Não foi possível entrar';
+        let description = loginData.error;
+
+        if (loginData.error.includes('não cadastrado') || loginData.error.includes('desativada')) {
+          title = 'Email não reconhecido';
+          description = 'Este email não está cadastrado como entregador. Peça ao estabelecimento para cadastrá-lo.';
+        } else if (loginData.error.includes('Empresa não encontrada')) {
+          title = 'Link inválido';
+          description = 'O link de acesso está incorreto. Peça um novo link ao estabelecimento.';
+        }
+
+        toast.error(title, { description });
+        return;
+      }
+
+      // Sucesso
       if (loginData?.session) {
-        // Set the session manually
         const { error: sessionError } = await supabase.auth.setSession({
           access_token: loginData.session.access_token,
           refresh_token: loginData.session.refresh_token,
         });
 
-        if (sessionError) throw sessionError;
+        if (sessionError) {
+          toast.error('Erro ao salvar login', {
+            description: 'Tente novamente ou reinicie o aplicativo.',
+          });
+          return;
+        }
 
-        toast.success('Login realizado com sucesso!');
-        navigate('/driver');
+        const firstName = loginData.driverName?.split(' ')[0];
+        toast.success('Login realizado com sucesso!', {
+          description: firstName ? `Bem-vindo, ${firstName}!` : 'Bem-vindo!',
+        });
+
+        navigate('/driver', { replace: true });
       } else {
-        throw new Error('Não foi possível criar a sessão');
+        toast.error('Erro inesperado', {
+          description: 'Resposta inválida do servidor.',
+        });
       }
-    } catch (error: any) {
-      console.error('Error logging in:', error);
-      toast.error('Erro ao fazer login', {
-        description: error.message || 'Tente novamente',
+    } catch (error) {
+      console.error('Erro inesperado no login:', error);
+      toast.error('Erro inesperado', {
+        description: 'Tente novamente ou contate o suporte.',
       });
     } finally {
       setLoading(false);
@@ -158,6 +184,7 @@ export default function DriverLogin() {
             )}
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="relative">
@@ -170,11 +197,12 @@ export default function DriverLogin() {
                 className="pl-10"
                 disabled={loading}
                 autoFocus
+                required
               />
             </div>
-            
-            <Button 
-              type="submit" 
+
+            <Button
+              type="submit"
               className="w-full gradient-primary text-primary-foreground"
               disabled={loading}
             >
@@ -190,7 +218,7 @@ export default function DriverLogin() {
           </form>
 
           {!companySlug && (
-            <p className="text-xs text-muted-foreground text-center mt-4">
+            <p className="text-xs text-muted-foreground text-center mt-6">
               Se você trabalha em mais de uma empresa, peça o link de acesso específico ao estabelecimento.
             </p>
           )}

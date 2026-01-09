@@ -1,8 +1,11 @@
+// supabase/functions/driver-direct-login/index.ts
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
@@ -12,67 +15,71 @@ const logStep = (step: string, details?: any) => {
 };
 
 serve(async (req) => {
+  // Handle preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
     logStep("Function started");
 
     const { email, companySlug } = await req.json();
-    
+
     if (!email) {
-      throw new Error("Email is required");
+      return new Response(
+        JSON.stringify({ error: "Email é obrigatório" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const normalizedEmail = email.toLowerCase().trim();
     logStep("Processing login", { email: normalizedEmail, companySlug });
 
-    // Use service role to bypass RLS
+    // Cliente admin com service_role (bypass RLS)
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // If companySlug is provided, verify the company exists first
     let targetCompanyId: string | null = null;
     let companyName: string | null = null;
-    
+
+    // Validação da empresa se slug foi informado
     if (companySlug) {
       const { data: company, error: companyError } = await supabaseAdmin
         .from("companies")
-        .select("id, name, slug")
+        .select("id, name")
         .eq("slug", companySlug)
         .maybeSingle();
 
       if (companyError) {
         logStep("Error fetching company", { error: companyError.message });
-        throw new Error("Erro ao verificar empresa");
+        return new Response(
+          JSON.stringify({ error: "Erro ao verificar empresa" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       if (!company) {
         logStep("Company not found", { slug: companySlug });
-        return new Response(JSON.stringify({ 
-          error: "Empresa não encontrada. Verifique o link de acesso." 
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        });
+        return new Response(
+          JSON.stringify({ error: "Empresa não encontrada. Verifique o link de acesso." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       targetCompanyId = company.id;
       companyName = company.name;
-      logStep("Company found", { companyId: targetCompanyId, name: companyName });
+      logStep("Company validated", { companyId: targetCompanyId, name: companyName });
     }
 
-    // Build query for driver
+    // Busca o entregador ativo com o email informado
     let driverQuery = supabaseAdmin
       .from("delivery_drivers")
       .select("id, email, driver_name, is_active, user_id, company_id")
       .eq("email", normalizedEmail)
       .eq("is_active", true);
 
-    // If company slug was provided, filter by that company
     if (targetCompanyId) {
       driverQuery = driverQuery.eq("company_id", targetCompanyId);
     }
@@ -82,59 +89,55 @@ serve(async (req) => {
       .limit(1);
 
     if (driverError) {
-      logStep("Error fetching driver", { error: driverError.message });
-      throw new Error("Erro ao verificar entregador");
+      logStep("Error querying driver", { error: driverError.message });
+      return new Response(
+        JSON.stringify({ error: "Erro ao verificar entregador" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const driver = drivers && drivers.length > 0 ? drivers[0] : null;
 
     if (!driver) {
-      logStep("Driver not found or inactive", { companySlug, email: normalizedEmail });
-      
-      // Give more specific error if company was specified
-      if (companySlug) {
-        return new Response(JSON.stringify({ 
-          error: `Você não está cadastrado como entregador em ${companyName || 'esta empresa'}. Verifique com o estabelecimento.` 
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        });
+      logStep("Driver not found or inactive", { email: normalizedEmail, companySlug });
+
+      if (companySlug && companyName) {
+        return new Response(
+          JSON.stringify({
+            error: `Você não está cadastrado como entregador em ${companyName}. Contate o estabelecimento.`,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-      
-      return new Response(JSON.stringify({ 
-        error: "Email não cadastrado ou conta desativada" 
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
-      });
+
+      return new Response(
+        JSON.stringify({ error: "Email não cadastrado ou conta desativada" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    logStep("Driver found", { driverId: driver.id, hasUserId: !!driver.user_id, companyId: driver.company_id });
+    logStep("Driver found", { driverId: driver.id, hasUserId: !!driver.user_id });
 
     let userId = driver.user_id;
 
-    // If driver doesn't have a user_id, create auth user
+    // Se não tiver user_id vinculado, cria o usuário no auth
     if (!userId) {
-      logStep("Creating new auth user for driver");
-      
-      // Generate a random password (user won't need it)
+      logStep("Creating auth user for driver");
+
       const randomPassword = crypto.randomUUID() + crypto.randomUUID();
-      
+
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: normalizedEmail,
         password: randomPassword,
         email_confirm: true,
-        user_metadata: {
-          full_name: driver.driver_name || "Entregador",
-        },
+        user_metadata: { full_name: driver.driver_name || "Entregador" },
       });
 
       if (authError) {
-        // User might already exist
         if (authError.message.includes("already been registered")) {
-          logStep("User already exists, fetching user");
+          logStep("User already exists, fetching from auth");
           const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-          const existingUser = existingUsers?.users?.find(u => u.email === normalizedEmail);
+          const existingUser = existingUsers?.users?.find((u: any) => u.email === normalizedEmail);
           if (existingUser) {
             userId = existingUser.id;
           } else {
@@ -143,100 +146,82 @@ serve(async (req) => {
         } else {
           throw authError;
         }
-      } else {
+      } else if (authData?.user) {
         userId = authData.user.id;
       }
 
-      // Link user to driver record
-      const { error: updateError } = await supabaseAdmin
+      // Vincula o user_id ao entregador
+      const { error: linkError } = await supabaseAdmin
         .from("delivery_drivers")
         .update({ user_id: userId })
         .eq("id", driver.id);
 
-      if (updateError) {
-        logStep("Error linking user to driver", { error: updateError.message });
+      if (linkError) {
+        logStep("Error linking user_id to driver", { error: linkError.message });
+        // Não falha a função por isso, só loga
       }
 
-      // Add driver role
+      // Adiciona role de delivery_driver
       const { error: roleError } = await supabaseAdmin
         .from("user_roles")
-        .upsert({ 
-          user_id: userId, 
-          role: "delivery_driver" 
-        }, { 
-          onConflict: "user_id,role" 
-        });
+        .upsert({ user_id: userId, role: "delivery_driver" }, { onConflict: "user_id,role" });
 
       if (roleError) {
         logStep("Error adding driver role", { error: roleError.message });
       }
 
-      logStep("Created and linked new user", { userId });
+      logStep("Auth user created and linked", { userId });
     }
 
-    // Generate session tokens for the user
-    logStep("Generating session for user", { userId });
+    // === LOGIN DIRETO E SEGURO (MÉTODO OFICIAL) ===
+    logStep("Performing direct sign-in with email");
 
-    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
-      email: normalizedEmail,
-    });
+    const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithEmail(normalizedEmail);
 
-    if (sessionError) {
-      logStep("Error generating link", { error: sessionError.message });
-      throw sessionError;
+    if (signInError) {
+      logStep("signInWithEmail failed", { message: signInError.message });
+      return new Response(
+        JSON.stringify({ error: "Não foi possível fazer login. Contate o estabelecimento." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Extract the token from the action link and create a session
-    const actionLink = sessionData.properties?.action_link;
-    if (!actionLink) {
-      throw new Error("Could not generate login link");
+    if (!signInData.session) {
+      logStep("signInWithEmail succeeded but no session");
+      return new Response(
+        JSON.stringify({ error: "Falha ao criar sessão de login" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Parse the token from the link
-    const url = new URL(actionLink);
-    const token = url.searchParams.get("token");
-    const tokenType = url.searchParams.get("type");
+    logStep("Login successful", { userId: signInData.user?.id });
 
-    if (!token) {
-      throw new Error("Could not extract token");
-    }
+    return new Response(
+      JSON.stringify({
+        session: {
+          access_token: signInData.session.access_token,
+          refresh_token: signInData.session.refresh_token,
+        },
+        user: signInData.user,
+        companyId: driver.company_id,
+        driverName: driver.driver_name,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
 
-    // Verify the OTP to get a session
-    const { data: otpData, error: otpError } = await supabaseAdmin.auth.verifyOtp({
-      token_hash: token,
-      type: tokenType as any || "magiclink",
-    });
-
-    if (otpError) {
-      logStep("Error verifying token", { error: otpError.message });
-      throw otpError;
-    }
-
-    if (!otpData.session) {
-      throw new Error("Could not create session");
-    }
-
-    logStep("Session created successfully");
-
-    return new Response(JSON.stringify({
-      session: {
-        access_token: otpData.session.access_token,
-        refresh_token: otpData.session.refresh_token,
-      },
-      user: otpData.user,
-      companyId: driver.company_id,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-
-  } catch (error) {
+  } catch (error: any) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    logStep("UNEXPECTED ERROR", { message: errorMessage, stack: error.stack });
+
+    return new Response(
+      JSON.stringify({ error: "Erro interno. Tente novamente mais tarde." }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });
