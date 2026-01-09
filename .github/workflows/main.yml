@@ -1,0 +1,38 @@
+name: Deploy React/Vite to Apache
+
+on:
+  push:
+    branches:
+      - main  # ou master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Deploy to Apache server via SSH
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          port: 22
+          script: |
+            rm -rf /var/www/html/*
+            cp -r dist/* /var/www/html/
+            cp .htaccess /var/www/html/
+            chown -R www-data:www-data /var/www/html/
