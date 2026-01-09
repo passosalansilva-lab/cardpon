@@ -815,7 +815,7 @@ export default function MenuManagement() {
                     const origin = window.location.origin;
 
                     // Subdomínio dedicado para share (Cloudflare Worker → edge function com OG tags)
-                    const shareUrl = `https://s.cardpondelivery.com.br/${companySlug}`;
+                    const shareUrl = `https://s.cardpondelivery.com/${companySlug}`;
 
 
 
