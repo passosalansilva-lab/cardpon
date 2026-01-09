@@ -46,7 +46,7 @@ serve(async (req) => {
       throw new Error("Empresa ou usuário não encontrado");
     }
 
-    const menuUrl = `https://www.cardpondelivery.com/menu/${company.slug}`;
+    const menuUrl = `https://www.cardpondelivery.com/auth`;
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -63,90 +63,109 @@ serve(async (req) => {
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Empresa aprovada</title>
+  <title>${company.name} aprovada no CardpOn</title>
 </head>
+
 <body style="margin:0; padding:0; background-color:#f4f4f5; font-family:Arial, Helvetica, sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5; padding:20px 0;">
-    <tr>
-      <td align="center">
-        <!-- Container -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background:#ffffff; border-radius:12px; overflow:hidden;">
-          
-          <!-- Header -->
-          <tr>
-            <td style="background:#111827; padding:24px; text-align:center;">
-              <h1 style="margin:0; font-size:24px; color:#ffffff;">
-                🎉 Empresa aprovada!
-              </h1>
-            </td>
-          </tr>
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5; padding:24px 0;">
+<tr>
+<td align="center">
 
-          <!-- Content -->
-          <tr>
-            <td style="padding:32px;">
-              <p style="margin:0 0 16px; font-size:16px; color:#111827;">
-                Parabéns!
-              </p>
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.05);">
 
-              <p style="margin:0 0 24px; font-size:15px; color:#374151; line-height:1.6;">
-                Sua empresa <strong>${company.name}</strong> foi aprovada com sucesso no
-                <strong>CardpOn</strong>.
-                <br />
-                Agora seu cardápio já pode ser acessado online e compartilhado com seus clientes.
-              </p>
+<!-- Header -->
+<tr>
+<td style="background:#111827; padding:28px; text-align:center;">
+  <h1 style="margin:0; font-size:24px; color:#ffffff;">
+    🎉 Sua loja já está no ar!
+  </h1>
+  <p style="margin:8px 0 0; font-size:14px; color:#9ca3af;">
+    ${company.name} agora faz parte do CardpOn
+  </p>
+</td>
+</tr>
 
-              <!-- Button -->
-              <table cellpadding="0" cellspacing="0" width="100%">
-                <tr>
-                  <td align="center">
-                    <a
-                      href="${menuUrl}"
-                      target="_blank"
-                      style="
-                        display:inline-block;
-                        padding:14px 28px;
-                        background-color:#16a34a;
-                        color:#ffffff;
-                        font-size:16px;
-                        font-weight:bold;
-                        text-decoration:none;
-                        border-radius:8px;
-                      "
-                    >
-                      🍽️ Acessar meu cardápio
-                    </a>
-                  </td>
-                </tr>
-              </table>
+<!-- Body -->
+<tr>
+<td style="padding:36px 32px 40px 32px;">
 
-              <p style="margin:32px 0 0; font-size:13px; color:#6b7280; text-align:center;">
-                Se tiver qualquer dúvida, é só responder este email.
-              </p>
-            </td>
-          </tr>
+<p style="margin:0 0 16px; font-size:16px; color:#111827;">
+Olá 👋
+</p>
 
-          <!-- Footer -->
-          <tr>
-            <td style="background:#f9fafb; padding:20px; text-align:center;">
-              <p style="margin:0; font-size:12px; color:#9ca3af;">
-                © ${new Date().getFullYear()} CardpOn — Seu cardápio online
-              </p>
-              <p style="margin:6px 0 0; font-size:12px; color:#9ca3af;">
-                <a href="https://www.cardpondelivery.com/" style="color:#9ca3af; text-decoration:none;">
-                  cardpon.com.br
-                </a>
-              </p>
-            </td>
-          </tr>
+<p style="margin:0 0 24px; font-size:15px; color:#374151; line-height:1.6;">
+Sua empresa <strong>${company.name}</strong> foi aprovada e já está ativa no
+<strong>CardpOn</strong> 🚀  
+Agora seus clientes podem acessar seu cardápio online, escolher os produtos e fazer pedidos direto pelo celular.
+</p>
 
-        </table>
-        <!-- /Container -->
-      </td>
-    </tr>
-  </table>
+<!-- Highlight box -->
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb; border-radius:10px; margin-bottom:28px;">
+<tr>
+<td style="padding:20px;">
+  <p style="margin:0; font-size:14px; color:#111827; font-weight:bold;">
+  O que você já pode fazer agora:
+  </p>
+  <ul style="margin:12px 0 0; padding-left:18px; font-size:14px; color:#374151; line-height:1.6;">
+    <li>Adicionar e editar seus produtos</li>
+    <li>Definir preços, fotos e descrições</li>
+    <li>Receber pedidos em tempo real</li>
+    <li>Compartilhar seu link de vendas</li>
+  </ul>
+</td>
+</tr>
+</table>
+
+<!-- Button -->
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td align="center">
+  <a href="${menuUrl}" target="_blank"
+    style="
+      display:inline-block;
+      padding:16px 32px;
+      background:#16a34a;
+      color:#ffffff;
+      font-size:16px;
+      font-weight:bold;
+      text-decoration:none;
+      border-radius:10px;
+    ">
+    🍔 Acessar meu painel
+  </a>
+</td>
+</tr>
+</table>
+
+<p style="margin:28px 0 0; font-size:13px; color:#6b7280; text-align:center;">
+Dica: copie o link do seu cardápio e compartilhe no WhatsApp e Instagram para começar a vender hoje mesmo.
+</p>
+
+</td>
+</tr>
+
+<!-- Footer -->
+<tr>
+<td style="background:#f9fafb; padding:22px; text-align:center;">
+  <p style="margin:0; font-size:12px; color:#9ca3af;">
+    © ${new Date().getFullYear()} CardpOn — seu cardápio online, simples e poderoso
+  </p>
+  <p style="margin:6px 0 0; font-size:12px;">
+    <a href="https://www.cardpondelivery.com" style="color:#9ca3af; text-decoration:none;">
+      www.cardpondelivery.com
+    </a>
+  </p>
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
 </body>
 </html>
+
 `
 ,
       }),
