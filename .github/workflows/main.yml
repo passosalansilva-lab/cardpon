@@ -40,18 +40,18 @@ jobs:
             mkdir -p /var/www/html
             rm -rf /var/www/html/*
 
-      # 6️⃣ Copiar build e arquivos adicionais para o root
-      - name: Copy build and additional files to root
+      # 6️⃣ Copiar build e .htaccess para o root
+      - name: Copy build and .htaccess to root
         uses: appleboy/scp-action@v0.1.2
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           port: 22
-          source: "dist/, .htaccess"    # build + arquivos extras
+          source: "dist/, .htaccess"   # build + arquivo .htaccess
           target: "/var/www/html"
-          strip_components: 1           # remove a pasta dist
-          rm: true                      # remove arquivos antigos no destino
+          strip_components: 1          # remove a pasta dist
+          rm: true                     # remove arquivos antigos no destino
 
       # 7️⃣ Ajustar permissões
       - name: Set permissions
