@@ -994,7 +994,7 @@ function PublicMenuContent() {
     const origin = window.location.origin;
 
     // Subdomínio dedicado para share (Cloudflare Worker → edge function com OG tags)
-    const shareUrl = `https://s.cardpon.com.br/${company.slug}`;
+    const shareUrl = `https://s.cardpondelivery.com/${company.slug}`;
 
 
 
