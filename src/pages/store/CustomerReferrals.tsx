@@ -210,7 +210,7 @@ const CustomerReferrals = () => {
   };
 
   const referralLink = companySlug 
-    ? `https://s.cardpon.com.br/${companySlug}?ref=CODIGO_DO_CLIENTE`
+    ? `https://s.cardpondelivery.com/${companySlug}?ref=CODIGO_DO_CLIENTE`
     : null;
 
   const handleCopyLink = () => {
