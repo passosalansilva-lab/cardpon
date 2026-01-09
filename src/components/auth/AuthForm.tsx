@@ -38,12 +38,7 @@ const step2Schema = z.object({
     .min(8, 'Telefone deve ter pelo menos 8 dígitos')
     .max(20, 'Telefone deve ter no máximo 20 caracteres')
     .regex(/^[0-9()+\s-]+$/, 'Telefone deve conter apenas números e símbolos válidos'),
-  email: z
-    .string()
-    .trim()
-    .min(1, 'Email é obrigatório')
-    .email('Email inválido')
-    .max(255, 'Email deve ter no máximo 255 caracteres'),
+  email: z.string().email('Email inválido'),
   password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -197,10 +192,11 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
         body: { email: data.email },
       });
 
+       
       if (error || response?.error) {
         toast({
           title: 'Erro ao enviar código',
-          description: response?.error || error?.message || 'Tente novamente',
+          description: "Empresa já registrada",
           variant: 'destructive',
         });
         return;

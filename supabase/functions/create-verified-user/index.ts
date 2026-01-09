@@ -55,6 +55,64 @@ const handler = async (req: Request): Promise<Response> => {
     // Create Supabase client with service role
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
+    // Validação por email na tabela companies
+    const { data: existingEmailCompany, error: emailCheckError } = await supabase
+      .from("companies")
+      .select("id")
+      .eq("email", email.trim())
+      .maybeSingle();
+
+    if (emailCheckError) {
+      throw emailCheckError;
+    }
+
+    if (existingEmailCompany) {
+      return new Response(
+        JSON.stringify({ error: "Já existe uma empresa cadastrada com esse email. Redefina sua senha." }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Validação por telefone na tabela companies
+    if (phone) {
+      const { data: existingPhone, error: phoneCheckError } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("phone", phone)
+        .maybeSingle();
+
+      if (phoneCheckError) {
+        throw phoneCheckError;
+      }
+
+      if (existingPhone) {
+        return new Response(
+          JSON.stringify({ error: "Este telefone já está cadastrado em uma empresa" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
+
+    // Validação por CNPJ na tabela companies (se fornecido)
+    if (cnpj) {
+      const { data: existingCnpj, error: cnpjCheckError } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("cnpj", cnpj)
+        .maybeSingle();
+
+      if (cnpjCheckError) {
+        throw cnpjCheckError;
+      }
+
+      if (existingCnpj) {
+        return new Response(
+          JSON.stringify({ error: "Este CNPJ já está cadastrado em uma empresa" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
+
     // Check if email was verified
     const { data: verificationRecord, error: fetchError } = await supabase
       .from("email_verification_codes")
@@ -88,7 +146,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error creating user:", authError);
       if (authError.message.includes("already registered")) {
         return new Response(
-          JSON.stringify({ error: "Este email já está cadastrado. Faça login." }),
+          JSON.stringify({ error: "Este email já está cadastrado. Faça login ou redefina sua senha." }),
           { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
@@ -158,10 +216,10 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`User and company created successfully for: ${email}`);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: "Conta criada com sucesso",
-        userId: userId 
+        userId: userId
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
