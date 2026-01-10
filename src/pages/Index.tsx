@@ -24,6 +24,8 @@ import {
   Receipt,
   MapPinned,
   QrCode,
+  Menu,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -148,7 +150,7 @@ export default function Index() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [currentFoodIndex, setCurrentFoodIndex] = useState(0);
-
+   const [open, setOpen] = useState(false)
   const foodImages = [
     { src: foodPizza, alt: 'Pizza', label: 'Pizzarias' },
     { src: foodBurger, alt: 'Hambúrguer', label: 'Hamburguerias' },
@@ -234,60 +236,139 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 via-white to-white font-sans antialiased">
       {/* Header */}
-<header className="sticky top-0 z-50 border-b border-orange-100/60 bg-white/95 backdrop-blur-sm">
-  <div className="container max-w-6xl mx-auto px-6 flex h-16 items-center justify-between">
-    
-    {/* Logo */}
-    <Link to={getDashboardPath()} className="flex items-center">
-      <ChromaKeyImage
-        src={logoUrl}
-        alt="Cardápio On"
-        className="h-10 sm:h-12 w-auto"
-      />
-    </Link>
+ <header className="sticky top-0 z-50 bg-white md:bg-white/80 md:backdrop-blur-xl border-b border-orange-100">
 
-    {/* Navigation */}
-    <nav className="hidden md:flex items-center gap-10 relative">
-      
-      {/* FUNCIONALIDADES – Mega Menu */}
-      <div className="relative group">
-        <span className="text-sm font-medium text-gray-600 hover:text-orange-600 cursor-pointer flex items-center gap-1">
-          Funcionalidades
-        </span>
+      <div className="max-w-7xl mx-auto px-4 md:px-6">
+        <div className="flex h-16 md:h-20 items-center justify-between">
 
-        {/* Dropdown */}
-        <div className="absolute left-1/2 top-full pt-4 -translate-x-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
-         <FeaturesMegaMenu />
+          {/* LOGO */}
+          <Link to={getDashboardPath()} className="flex items-center">
+            <ChromaKeyImage
+              src={logoUrl}
+              alt="CardpOn"
+              className="h-10 md:h-14 w-auto scroll-smooth"
+            />
+          </Link>
+
+          {/* DESKTOP NAV */}
+          <nav className="hidden lg:flex items-center gap-10 relative">
+            <div className="relative group">
+              <button className="relative font-medium text-gray-700 hover:text-orange-600 transition">
+                Funcionalidades
+                <span className="absolute -bottom-2 left-0 w-0 h-[2px] bg-gradient-to-r from-orange-500 to-red-500 group-hover:w-full transition-all duration-300" />
+              </button>
+
+              <div className="absolute left-1/2 top-full pt-6 -translate-x-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                <FeaturesMegaMenu />
+              </div>
+            </div>
+
+            <a href="#pricing" className="relative font-medium text-gray-700 hover:text-orange-600 transition group">
+              Planos
+              <span className="absolute -bottom-2 left-0 w-0 h-[2px] bg-gradient-to-r from-orange-500 to-red-500 group-hover:w-full transition-all duration-300" />
+            </a>
+
+            <a href="#contact" className="relative font-medium text-gray-700 hover:text-orange-600 transition group">
+              Contato
+              <span className="absolute -bottom-2 left-0 w-0 h-[2px] bg-gradient-to-r from-orange-500 to-red-500 group-hover:w-full transition-all duration-300" />
+            </a>
+          </nav>
+
+          {/* DESKTOP ACTIONS */}
+          <div className="hidden lg:flex items-center gap-4">
+            {user ? (
+              <Link
+                to={getDashboardPath()}
+                className="px-6 py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold shadow-lg shadow-orange-500/30 hover:scale-105 transition"
+              >
+                Abrir painel
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/auth?mode=login"
+                  className="font-medium text-gray-700 hover:text-orange-600 transition"
+                >
+                  Entrar
+                </Link>
+
+                <Link
+                  to="/auth?mode=signup"
+                  className="px-6 py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold shadow-lg shadow-orange-500/30 hover:scale-105 transition"
+                >
+                  Criar cardápio grátis
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* MOBILE BUTTON */}
+          <button
+            onClick={() => setOpen(true)}
+            className="lg:hidden p-2 rounded-lg hover:bg-orange-100"
+          >
+            <Menu className="w-6 h-6 text-orange-600" />
+          </button>
         </div>
       </div>
 
-      <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors">
-        Planos
-      </a>
-      <a href="#contact" className="text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors">
-        Contato
-      </a>
-    </nav>
+      {/* MOBILE DRAWER */}
+      <div
+        className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition ${
+          open ? "opacity-100 visible" : "opacity-0 invisible"
+        }`}
+        onClick={() => setOpen(false)}
+      />
 
-    {/* Right actions */}
-    <div className="flex items-center gap-3">
-      {user ? (
-        <Button asChild size="sm" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold shadow-lg shadow-orange-500/25">
-          <Link to={getDashboardPath()}>Acessar Painel</Link>
-        </Button>
-      ) : (
-        <>
-          <Button variant="ghost" asChild size="sm" className="hidden sm:inline-flex text-gray-600 font-medium hover:text-orange-600 hover:bg-orange-50">
-            <Link to="/auth?mode=login">Entrar</Link>
-          </Button>
-          <Button asChild size="sm" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold shadow-lg shadow-orange-500/25">
-            <Link to="/auth?mode=signup">Começar Grátis</Link>
-          </Button>
-        </>
-      )}
-    </div>
-  </div>
-</header>
+      <div
+        className={`fixed top-0 right-0 h-full w-[85%] max-w-sm bg-white z-50 shadow-2xl transition-transform ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="p-6 flex flex-col h-full  bg-white">
+          <div className="flex items-center justify-between mb-8">
+            <ChromaKeyImage src={logoUrl} alt="CardpOn" className="h-10" />
+            <button onClick={() => setOpen(false)}>
+              <X className="w-6 h-6 text-gray-600" />
+            </button>
+          </div>
+
+          <nav className="flex flex-col gap-6 text-lg font-medium">
+            <a href="#features" onClick={() => setOpen(false)}>Funcionalidades</a>
+            <a href="#pricing" onClick={() => setOpen(false)}>Planos</a>
+            <a href="#contact" onClick={() => setOpen(false)}>Contato</a>
+          </nav>
+
+          <div className="mt-auto pt-6 border-t flex flex-col gap-4">
+            {user ? (
+              <Link
+                to={getDashboardPath()}
+                className="w-full text-center py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold"
+              >
+                Abrir painel
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/auth?mode=login"
+                  className="w-full text-center py-3 rounded-xl border border-orange-200 text-orange-600 font-semibold"
+                >
+                  Entrar
+                </Link>
+
+                <Link
+                  to="/auth?mode=signup"
+                  className="w-full text-center py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold"
+                >
+                  Criar cardápio grátis
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+
 
 
       {/* Hero */}
