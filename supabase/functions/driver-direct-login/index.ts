@@ -174,34 +174,43 @@ serve(async (req) => {
     }
 
     // === LOGIN DIRETO E SEGURO (MÉTODO OFICIAL) ===
-    logStep("Performing direct sign-in with email");
+    logStep("Generating magic link for passwordless login");
 
-    const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithEmail(normalizedEmail);
+    const { data: signInData, error: signInError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: normalizedEmail,
+    });
 
     if (signInError) {
-      logStep("signInWithEmail failed", { message: signInError.message });
+      logStep("generateLink failed", { message: signInError.message });
       return new Response(
         JSON.stringify({ error: "Não foi possível fazer login. Contate o estabelecimento." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!signInData.session) {
-      logStep("signInWithEmail succeeded but no session");
+    // Use the generated token to create a session
+    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.getUserById(signInData.user.id);
+    
+    if (sessionError || !sessionData.user) {
+      logStep("Failed to get user for session");
       return new Response(
         JSON.stringify({ error: "Falha ao criar sessão de login" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Generate a session token manually
+    const { data: tokenData, error: tokenError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: normalizedEmail,
+    });
+
     logStep("Login successful", { userId: signInData.user?.id });
 
     return new Response(
       JSON.stringify({
-        session: {
-          access_token: signInData.session.access_token,
-          refresh_token: signInData.session.refresh_token,
-        },
+        magicLink: signInData.properties.action_link,
         user: signInData.user,
         companyId: driver.company_id,
         driverName: driver.driver_name,

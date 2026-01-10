@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Minus, Plus, X, Trash2, ArrowLeft, Coffee } from 'lucide-react';
+import { Minus, Plus, X, Trash2, ArrowLeft, Coffee, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -13,6 +13,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -114,7 +120,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
     try {
       const categoryId = product.category_id;
 
-      // Buscar em paralelo: grupos genéricos + opções + tamanhos configurados de pizza + tipos de massa + bordas
+      // Buscar em paralelo: grupos genéricos + opções + tamanhos configurados de pizza + tipos de massa + bordas + açaí
       const [
         groupsResult,
         optionsResult,
@@ -122,6 +128,8 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
         doughTypesResult,
         crustLinksResult,
         globalCrustFlavorsResult,
+        acaiCategoryResult,
+        acaiSizesResult,
       ] = await Promise.all([
         supabase
           .from('product_option_groups')
@@ -153,6 +161,22 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
           .from('pizza_crust_flavors')
           .select('id, name, extra_price, active')
           .eq('active', true),
+        // Verificar se a categoria é de açaí
+        categoryId
+          ? supabase
+              .from('acai_categories')
+              .select('category_id')
+              .eq('category_id', categoryId)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null } as any),
+        // Buscar tamanhos de açaí para a categoria
+        categoryId
+          ? supabase
+              .from('acai_category_sizes')
+              .select('id, name, base_price, sort_order')
+              .eq('category_id', categoryId)
+              .order('sort_order')
+          : Promise.resolve({ data: null, error: null } as any),
       ]);
 
       const { data: groupsData, error: groupsError } = groupsResult as any;
@@ -161,6 +185,8 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
       const { data: doughTypes, error: doughTypesError } = doughTypesResult as any;
       const { data: crustLinks, error: crustLinksError } = crustLinksResult as any;
       const { data: globalCrustFlavors, error: globalCrustFlavorsError } = globalCrustFlavorsResult as any;
+      const { data: acaiCategoryData, error: acaiCategoryError } = acaiCategoryResult as any;
+      const { data: acaiSizesData, error: acaiSizesError } = acaiSizesResult as any;
 
       if (groupsError) throw groupsError;
       if (optionsError) throw optionsError;
@@ -168,6 +194,12 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
       if (doughTypesError) throw doughTypesError;
       if (crustLinksError) throw crustLinksError;
       if (globalCrustFlavorsError) throw globalCrustFlavorsError;
+      if (acaiCategoryError) throw acaiCategoryError;
+      if (acaiSizesError) throw acaiSizesError;
+
+      // Verificar se é categoria de açaí com tamanhos configurados
+      const isAcaiCategory = !!acaiCategoryData;
+      const hasAcaiSizes = isAcaiCategory && acaiSizesData && Array.isArray(acaiSizesData) && acaiSizesData.length > 0;
 
       // Agrupar opções genéricas por grupo e ordenar por sort_order
       const groups: OptionGroup[] = (groupsData || []).map((group: any) => ({
@@ -229,6 +261,104 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
         };
 
         groups.push(sizeGroup);
+      }
+
+      // Adicionar tamanhos de açaí se a categoria tiver configurados
+      if (hasAcaiSizes) {
+        // Buscar grupos de opções para todos os tamanhos de açaí
+        const acaiSizeIds = (acaiSizesData as any[]).map((s) => s.id);
+        
+        const { data: acaiOptionGroupsData, error: acaiGroupsError } = await supabase
+          .from('acai_size_option_groups')
+          .select('*')
+          .in('size_id', acaiSizeIds)
+          .order('sort_order');
+
+        if (acaiGroupsError) throw acaiGroupsError;
+
+        // Buscar opções para todos os grupos
+        let acaiOptionsData: any[] = [];
+        if (acaiOptionGroupsData && acaiOptionGroupsData.length > 0) {
+          const groupIds = acaiOptionGroupsData.map((g: any) => g.id);
+          const { data: optData, error: optError } = await supabase
+            .from('acai_size_options')
+            .select('*')
+            .in('group_id', groupIds)
+            .eq('is_available', true)
+            .order('sort_order');
+
+          if (optError) throw optError;
+          acaiOptionsData = optData || [];
+        }
+
+        // Criar grupo de tamanho de açaí
+        const acaiSizeGroup: OptionGroup = {
+          id: 'acai-size',
+          name: 'Tamanho',
+          description: 'Selecione o tamanho do açaí. Cada tamanho possui adicionais específicos.',
+          is_required: true,
+          min_selections: 1,
+          max_selections: 1,
+          selection_type: 'single',
+          sort_order: -2, // Tamanho sempre primeiro
+          free_quantity_limit: 0,
+          extra_unit_price: 0,
+          options: (acaiSizesData as any[]).map((size) => ({
+            id: size.id,
+            name: size.name,
+            price_modifier: Number(size.base_price ?? 0),
+            is_required: true,
+            is_available: true,
+            sort_order: size.sort_order ?? 0,
+            group_id: 'acai-size',
+          })),
+        };
+
+        groups.push(acaiSizeGroup);
+
+        // Agrupar opções de açaí por grupo
+        const acaiGroupsBySize: Record<string, any[]> = {};
+        (acaiOptionGroupsData || []).forEach((g: any) => {
+          if (!acaiGroupsBySize[g.size_id]) acaiGroupsBySize[g.size_id] = [];
+          acaiGroupsBySize[g.size_id].push(g);
+        });
+
+        // Para cada tamanho de açaí, criar grupos de opções marcados com o size_id
+        // Esses grupos serão filtrados dinamicamente baseado no tamanho selecionado
+        (acaiSizesData as any[]).forEach((size, sizeIndex) => {
+          const sizeGroups = acaiGroupsBySize[size.id] || [];
+          
+          sizeGroups.forEach((group, groupIndex) => {
+            const groupOptions = acaiOptionsData.filter((opt: any) => opt.group_id === group.id);
+            
+            if (groupOptions.length > 0) {
+              groups.push({
+                id: `acai-group-${group.id}`,
+                name: group.name,
+                description: group.description,
+                is_required: group.min_selections > 0,
+                min_selections: group.min_selections || 0,
+                max_selections: group.max_selections || groupOptions.length,
+                selection_type: 'multiple',
+                sort_order: sizeIndex * 100 + groupIndex + 1, // Ordenar por tamanho, depois por grupo
+                free_quantity_limit: group.free_quantity || 0,
+                extra_unit_price: group.extra_price_per_item || 0,
+                options: groupOptions.map((opt: any) => ({
+                  id: opt.id,
+                  name: opt.name,
+                  description: opt.description,
+                  price_modifier: Number(opt.price_modifier ?? 0),
+                  is_required: false,
+                  is_available: opt.is_available !== false,
+                  sort_order: opt.sort_order ?? 0,
+                  group_id: `acai-group-${group.id}`,
+                })),
+                // Metadado extra para filtrar pelo tamanho selecionado
+                _acaiSizeId: size.id,
+              } as OptionGroup & { _acaiSizeId?: string });
+            }
+          });
+        });
       }
 
       // Tipos de massa globais (pizza_dough_types)
@@ -333,9 +463,31 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
 
   if (!product) return null;
 
+  // Obter o tamanho de açaí selecionado
+  const selectedAcaiSizeId = selectedOptions.find((o) => o.groupId === 'acai-size')?.optionId;
+
+  // Filtrar grupos visíveis - esconder grupos de açaí que não são do tamanho selecionado
+  const visibleOptionGroups = optionGroups.filter((group) => {
+    // Se não é um grupo de açaí, sempre mostrar
+    if (!group.id.startsWith('acai-group-')) return true;
+    
+    // Se é um grupo de açaí mas nenhum tamanho foi selecionado, esconder
+    if (!selectedAcaiSizeId) return false;
+    
+    // Mostrar apenas grupos do tamanho selecionado
+    const groupWithMeta = group as OptionGroup & { _acaiSizeId?: string };
+    return groupWithMeta._acaiSizeId === selectedAcaiSizeId;
+  });
+
   const handleSingleSelect = (group: OptionGroup, option: ProductOption) => {
     // Remove any existing selection from this group
-    const filtered = selectedOptions.filter((o) => o.groupId !== group.id);
+    let filtered = selectedOptions.filter((o) => o.groupId !== group.id);
+    
+    // Se mudou o tamanho de açaí, limpar seleções de adicionais de açaí
+    if (group.id === 'acai-size') {
+      filtered = filtered.filter((o) => !o.groupId.startsWith('acai-group-'));
+    }
+    
     // Add new selection
     setSelectedOptions([
       ...filtered,
@@ -418,7 +570,8 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
   const normalize = (value: string | null | undefined) => (value || '').toLowerCase().trim();
 
   const validateRequiredGroups = () => {
-    for (const group of optionGroups) {
+    // Validar apenas grupos visíveis (exclui grupos de açaí de outros tamanhos)
+    for (const group of visibleOptionGroups) {
       if (group.is_required) {
         const count = getGroupSelectionCount(group.id);
         if (count < (group.min_selections || 1)) {
@@ -429,7 +582,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
     return true;
   };
 
-  const optionsTotal = optionGroups.reduce((groupSum, group) => {
+  const optionsTotal = visibleOptionGroups.reduce((groupSum, group) => {
     // Ignora grupo de tamanho (preço vem do tamanho selecionado)
     if (group.selection_type === "single" && group.name.toLowerCase() === "tamanho") {
       return groupSum;
@@ -472,11 +625,8 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
       return baseProductPrice;
     }
 
-    const isAcaiSizeGroup =
-      sizeGroup.description?.toLowerCase().includes("açaí") ||
-      sizeGroup.description?.toLowerCase().includes("acai");
-
-    const isPizzaSizeGroup = sizeGroup.id === "pizza-size";
+    const isAcaiSizeGroup = sizeGroup.id === 'acai-size';
+    const isPizzaSizeGroup = sizeGroup.id === 'pizza-size';
 
     // Para Açaí e pizzas com tamanho configurado, o preço do tamanho é o valor cheio
     if (isAcaiSizeGroup || isPizzaSizeGroup) {
@@ -591,14 +741,27 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
           )}
 
           {/* Option Groups */}
-          {optionGroups.length > 0 && (
+          {visibleOptionGroups.length > 0 && (
             <div className="space-y-6">
-              {optionGroups.map((group) => (
+              {visibleOptionGroups.map((group) => (
                 <div key={group.id} className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex items-center gap-2">
                       <h4 className="font-medium">{group.name}</h4>
-                      {group.description && (
+                      {/* Tooltip para tamanho de açaí */}
+                      {group.id === 'acai-size' && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[250px]">
+                              <p className="text-xs">Cada tamanho possui seus próprios adicionais e complementos. Selecione um tamanho para ver as opções disponíveis.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      {group.description && group.id !== 'acai-size' && (
                         <p className="text-xs text-muted-foreground">{group.description}</p>
                       )}
                     </div>

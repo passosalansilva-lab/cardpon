@@ -121,7 +121,7 @@ serve(async (req) => {
         .select("queue_position")
         .eq("delivery_driver_id", driverId)
         .eq("status", "queued")
-        .order("queue_position", { ascending: false, nullsLast: true }) // importante: nulls no final
+        .order("queue_position", { ascending: false, nullsFirst: false }) // importante: nulls no final
         .limit(1);
 
       const lastPos = lastQueue?.[0]?.queue_position;

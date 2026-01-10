@@ -1143,11 +1143,62 @@ export default function StoreSettings() {
                     Cores do Cardápio
                   </CardTitle>
                   <CardDescription>
-                    Escolha um esquema de cores com cara de food delivery ou personalize do seu jeito.
+                    Personalize as cores do seu cardápio. A cor principal é usada em botões e preços, 
+                    a secundária em tags e detalhes.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-5">
-                  {/* Paletas prontas para alimentação */}
+                <CardContent className="space-y-6">
+                  {/* Preview em tempo real */}
+                  <div className="space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Prévia das cores
+                    </p>
+                    <div className="rounded-xl border border-border overflow-hidden bg-card">
+                      <div className="p-4 flex items-center gap-4">
+                        <div 
+                          className="w-16 h-16 rounded-xl shadow-lg flex items-center justify-center text-white font-bold text-xl"
+                          style={{ backgroundColor: watch('primaryColor') || '#10B981' }}
+                        >
+                          Aa
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span 
+                              className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                              style={{ backgroundColor: watch('primaryColor') || '#10B981' }}
+                            >
+                              Promoção
+                            </span>
+                            <span 
+                              className="px-2 py-0.5 rounded-full text-xs font-medium"
+                              style={{ 
+                                backgroundColor: `${watch('secondaryColor') || '#059669'}20`,
+                                color: watch('secondaryColor') || '#059669'
+                              }}
+                            >
+                              Categoria
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span 
+                              className="text-lg font-bold"
+                              style={{ color: watch('primaryColor') || '#10B981' }}
+                            >
+                              R$ 29,90
+                            </span>
+                            <button 
+                              className="px-4 py-1.5 rounded-lg text-sm font-medium text-white shadow-md"
+                              style={{ backgroundColor: watch('primaryColor') || '#10B981' }}
+                            >
+                              Adicionar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Paletas prontas para alimentação - Expandido */}
                   <div className="space-y-3">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Paletas recomendadas
@@ -1196,81 +1247,159 @@ export default function StoreSettings() {
                           primary: '#7C3AED',
                           secondary: '#22D3EE',
                         },
-                      ].map((palette) => (
-                        <button
-                          key={palette.id}
-                          type="button"
-                          onClick={() => {
-                            setValue('primaryColor', palette.primary, { shouldDirty: true });
-                            setValue('secondaryColor', palette.secondary, { shouldDirty: true });
-                          }}
-                          className="group flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5 text-left shadow-sm transition-colors hover:border-primary/60 hover:bg-accent/10"
-                        >
-                          <div className="flex h-9 w-9 overflow-hidden rounded-full border border-border bg-muted">
-                            <div
-                              className="h-full w-1/2"
-                              style={{ backgroundColor: palette.primary }}
-                            />
-                            <div
-                              className="h-full w-1/2"
-                              style={{ backgroundColor: palette.secondary }}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate group-hover:text-primary">
-                              {palette.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {palette.description}
-                            </p>
-                          </div>
-                        </button>
-                      ))}
+                        {
+                          id: 'acai-tropical',
+                          name: 'Açaí Tropical',
+                          description: 'Roxo açaí com verde folha',
+                          primary: '#6B21A8',
+                          secondary: '#22C55E',
+                        },
+                        {
+                          id: 'sushi-zen',
+                          name: 'Japonês Zen',
+                          description: 'Vermelho sakura com preto elegante',
+                          primary: '#DC2626',
+                          secondary: '#1F2937',
+                        },
+                        {
+                          id: 'mexican-fiesta',
+                          name: 'Mexicano Festa',
+                          description: 'Laranja picante com verde limão',
+                          primary: '#EA580C',
+                          secondary: '#84CC16',
+                        },
+                        {
+                          id: 'ice-cream-pastel',
+                          name: 'Sorveteria Pastel',
+                          description: 'Rosa suave com azul céu',
+                          primary: '#EC4899',
+                          secondary: '#38BDF8',
+                        },
+                        {
+                          id: 'steakhouse-premium',
+                          name: 'Churrascaria Premium',
+                          description: 'Dourado elegante com bordô',
+                          primary: '#B45309',
+                          secondary: '#7F1D1D',
+                        },
+                        {
+                          id: 'bakery-sweet',
+                          name: 'Padaria Doce',
+                          description: 'Marrom chocolate com rosa suave',
+                          primary: '#92400E',
+                          secondary: '#FCA5A5',
+                        },
+                      ].map((palette) => {
+                        const isSelected = 
+                          watch('primaryColor') === palette.primary && 
+                          watch('secondaryColor') === palette.secondary;
+                        
+                        return (
+                          <button
+                            key={palette.id}
+                            type="button"
+                            onClick={() => {
+                              setValue('primaryColor', palette.primary, { shouldDirty: true });
+                              setValue('secondaryColor', palette.secondary, { shouldDirty: true });
+                            }}
+                            className={`group flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left shadow-sm transition-all ${
+                              isSelected 
+                                ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
+                                : 'border-border bg-card hover:border-primary/60 hover:bg-accent/10'
+                            }`}
+                          >
+                            <div className="flex h-9 w-9 overflow-hidden rounded-full border border-border bg-muted shadow-inner">
+                              <div
+                                className="h-full w-1/2"
+                                style={{ backgroundColor: palette.primary }}
+                              />
+                              <div
+                                className="h-full w-1/2"
+                                style={{ backgroundColor: palette.secondary }}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : 'group-hover:text-primary'}`}>
+                                {palette.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {palette.description}
+                              </p>
+                            </div>
+                            {isSelected && (
+                              <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                                <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
                   {/* Ajuste fino das cores */}
-                  <div className="border-t border-border/60 pt-4 grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="primaryColor">Cor Principal</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="primaryColor"
-                          type="color"
-                          className="w-12 h-10 p-1 cursor-pointer rounded-md border border-border bg-background"
-                          value={watch('primaryColor') || '#10B981'}
-                          onChange={(e) => setValue('primaryColor', e.target.value, { shouldDirty: true })}
-                        />
-                        <Input
-                          {...register('primaryColor')}
-                          placeholder="#10B981"
-                          className="flex-1"
-                        />
+                  <div className="border-t border-border/60 pt-5 space-y-4">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Personalização avançada
+                    </p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="primaryColor" className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: watch('primaryColor') || '#10B981' }} />
+                          Cor Principal
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="primaryColor"
+                            type="color"
+                            className="w-14 h-10 p-1 cursor-pointer rounded-md border border-border bg-background"
+                            value={watch('primaryColor') || '#10B981'}
+                            onChange={(e) => setValue('primaryColor', e.target.value, { shouldDirty: true })}
+                          />
+                          <Input
+                            {...register('primaryColor')}
+                            placeholder="#10B981"
+                            className="flex-1 font-mono text-sm"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Botões, preços, destaques e ações principais
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Botões de destaque, preço e ações principais do cardápio.
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="secondaryColor">Cor Secundária</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="secondaryColor"
-                          type="color"
-                          className="w-12 h-10 p-1 cursor-pointer rounded-md border border-border bg-background"
-                          value={watch('secondaryColor') || '#059669'}
-                          onChange={(e) => setValue('secondaryColor', e.target.value, { shouldDirty: true })}
-                        />
-                        <Input
-                          {...register('secondaryColor')}
-                          placeholder="#059669"
-                          className="flex-1"
-                        />
+                      <div className="space-y-2">
+                        <Label htmlFor="secondaryColor" className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: watch('secondaryColor') || '#059669' }} />
+                          Cor Secundária
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="secondaryColor"
+                            type="color"
+                            className="w-14 h-10 p-1 cursor-pointer rounded-md border border-border bg-background"
+                            value={watch('secondaryColor') || '#059669'}
+                            onChange={(e) => setValue('secondaryColor', e.target.value, { shouldDirty: true })}
+                          />
+                          <Input
+                            {...register('secondaryColor')}
+                            placeholder="#059669"
+                            className="flex-1 font-mono text-sm"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Tags de categoria, badges e elementos de apoio
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Tags, detalhes de categoria e fundos suaves do cardápio.
-                      </p>
                     </div>
+                  </div>
+
+                  {/* Dica */}
+                  <div className="rounded-lg bg-muted/50 border border-border/50 p-4">
+                    <p className="text-sm text-muted-foreground">
+                      <strong className="text-foreground">💡 Dica:</strong> O cliente pode alternar entre tema claro e escuro no cardápio. 
+                      As cores escolhidas aqui são aplicadas automaticamente em ambos os temas.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
