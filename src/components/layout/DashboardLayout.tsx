@@ -229,8 +229,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // Função para filtrar um item baseado em roles, permissions e features
   const canSeeItem = (item: NavItem): boolean => {
-    if (!item.roles) return true;
+    // 1) Feature ativa/inativa (vale para TODO mundo)
+    if (item.featureKey && !featuresLoading) {
+      const featureIsActive = allFeatures.some((f) => f.key === item.featureKey);
+      // Se a feature não está ativa no sistema, não deve aparecer no menu
+      if (!featureIsActive) return false;
+    }
+
+    // 2) Super admin: não aplica gating por plano/compra, apenas respeita ativa/inativa
     if (isSuperAdmin) return true;
+
+    // 3) Sem restrição de role
+    if (!item.roles) return true;
 
     // Enquanto os papéis ainda estão carregando, exibimos todos os itens
     // exceto os exclusivos de super_admin, para não esconder o menu do lojista.
@@ -247,24 +257,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       if (!hasPermission(item.permission as any)) return false;
     }
 
-    // Verificar acesso à feature (se configurado)
-    if (item.featureKey) {
-      // Enquanto carrega, mostrar todos os itens para evitar flash
-      if (!featuresLoading) {
-        // Verificar se a feature existe e está ativa no sistema
-        const featureExists = allFeatures.some(f => f.key === item.featureKey);
-        
-        // Se a feature não existe na lista de features ativas, esconder do menu
-        if (!featureExists) return false;
-        
-        const access = hasFeatureAccess(item.featureKey);
-        if (!access.hasAccess) {
-          // Se não tem acesso, verificar se a feature tem preço (pode ser comprada)
-          const featurePrice = getFeaturePrice(item.featureKey);
-          // Se NÃO tem preço configurado, esconder do menu
-          if (!featurePrice) return false;
-          // Se TEM preço, mostrar no menu (usuário pode comprar ao clicar)
-        }
+    // 4) Acesso à feature (plano/compra) - apenas para não-super-admin
+    if (item.featureKey && !featuresLoading) {
+      const access = hasFeatureAccess(item.featureKey);
+      if (!access.hasAccess) {
+        const featurePrice = getFeaturePrice(item.featureKey);
+        // Se não tem preço configurado, esconder do menu
+        if (!featurePrice) return false;
+        // Se tem preço, pode aparecer (para incentivar compra)
       }
     }
 
