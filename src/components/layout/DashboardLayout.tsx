@@ -227,49 +227,52 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const isSuperAdminRoute = superAdminNavItems.some(item => location.pathname === item.href);
   const [superAdminOpen, setSuperAdminOpen] = useState(isSuperAdminRoute);
 
-  // Função para filtrar um item baseado em roles, permissions e features
-  const canSeeItem = (item: NavItem): boolean => {
-    // 1) Feature ativa/inativa (vale para TODO mundo)
-    if (item.featureKey && !featuresLoading) {
-      const featureIsActive = allFeatures.some((f) => f.key === item.featureKey);
-      // Se a feature não está ativa no sistema, não deve aparecer no menu
-      if (!featureIsActive) return false;
+// Função para filtrar um item baseado em roles, permissions e features
+const canSeeItem = (item: NavItem): boolean => {
+  const featureRecord =
+    item.featureKey && !featuresLoading
+      ? allFeatures.find((f) => f.key === item.featureKey)
+      : undefined;
+
+  // 1) Feature ativa/inativa (vale para TODO mundo) — mas só se a feature existir no cadastro
+  if (item.featureKey && !featuresLoading && featureRecord && featureRecord.is_active === false) {
+    return false;
+  }
+
+  // 2) Super admin: não aplica gating por plano/compra, apenas respeita ativa/inativa
+  if (isSuperAdmin) return true;
+
+  // 3) Sem restrição de role
+  if (!item.roles) return true;
+
+  // Enquanto os papéis ainda estão carregando, exibimos todos os itens
+  // exceto os exclusivos de super_admin, para não esconder o menu do lojista.
+  if (loading || roles.length === 0) {
+    return !item.roles.includes('super_admin');
+  }
+
+  // Check role first
+  const hasRequiredRole = item.roles.some((role) => hasRole(role as any));
+  if (!hasRequiredRole) return false;
+
+  // If user is store_staff and item has permission requirement, check permission
+  if (isStoreStaff && !isOwnerOrAdmin && item.permission) {
+    if (!hasPermission(item.permission as any)) return false;
+  }
+
+  // 4) Acesso à feature (plano/compra) — apenas quando a feature existe no cadastro
+  if (item.featureKey && !featuresLoading && featureRecord) {
+    const access = hasFeatureAccess(item.featureKey);
+    if (!access.hasAccess) {
+      const featurePrice = getFeaturePrice(item.featureKey);
+      // Se não tem preço configurado, esconder do menu
+      if (!featurePrice) return false;
+      // Se tem preço, pode aparecer (para incentivar compra)
     }
+  }
 
-    // 2) Super admin: não aplica gating por plano/compra, apenas respeita ativa/inativa
-    if (isSuperAdmin) return true;
-
-    // 3) Sem restrição de role
-    if (!item.roles) return true;
-
-    // Enquanto os papéis ainda estão carregando, exibimos todos os itens
-    // exceto os exclusivos de super_admin, para não esconder o menu do lojista.
-    if (loading || roles.length === 0) {
-      return !item.roles.includes('super_admin');
-    }
-
-    // Check role first
-    const hasRequiredRole = item.roles.some((role) => hasRole(role as any));
-    if (!hasRequiredRole) return false;
-
-    // If user is store_staff and item has permission requirement, check permission
-    if (isStoreStaff && !isOwnerOrAdmin && item.permission) {
-      if (!hasPermission(item.permission as any)) return false;
-    }
-
-    // 4) Acesso à feature (plano/compra) - apenas para não-super-admin
-    if (item.featureKey && !featuresLoading) {
-      const access = hasFeatureAccess(item.featureKey);
-      if (!access.hasAccess) {
-        const featurePrice = getFeaturePrice(item.featureKey);
-        // Se não tem preço configurado, esconder do menu
-        if (!featurePrice) return false;
-        // Se tem preço, pode aparecer (para incentivar compra)
-      }
-    }
-
-    return true;
-  };
+  return true;
+};
 
   // Filtra os grupos, mantendo apenas os que têm itens visíveis
   const filteredNavGroups = useMemo(() => {

@@ -9,6 +9,7 @@ interface Feature {
   description: string | null;
   icon: string | null;
   category: string | null;
+  is_active: boolean;
 }
 
 interface FeaturePricing {
@@ -123,171 +124,186 @@ export function useFeatureAccess() {
     [cacheKey],
   );
 
-  const loadData = useCallback(async () => {
-    if (!user) return;
+const loadData = useCallback(async () => {
+  if (!user) return;
 
-    // Se não tem cache, vale mostrar loading; com cache, atualiza em background.
-    if (!hasCache) setLoading(true);
+  // Se não tem cache, vale mostrar loading; com cache, atualiza em background.
+  if (!hasCache) setLoading(true);
 
-    try {
-      // Buscar empresa do usuário (owner ou staff)
-      let company: { id: string; subscription_plan: string | null } | null = null;
+  try {
+    // Buscar empresa do usuário (owner ou staff)
+    let company: { id: string; subscription_plan: string | null } | null = null;
 
-      // Primeiro tenta como owner
-      const { data: ownedCompany } = await supabase
-        .from('companies')
-        .select('id, subscription_plan')
-        .eq('owner_id', user.id)
+    // Primeiro tenta como owner
+    const { data: ownedCompany } = await supabase
+      .from('companies')
+      .select('id, subscription_plan')
+      .eq('owner_id', user.id)
+      .maybeSingle();
+
+    if (ownedCompany) {
+      company = ownedCompany;
+    } else {
+      // Tenta como staff
+      const { data: staffLink } = await supabase
+        .from('company_staff')
+        .select('company_id')
+        .eq('user_id', user.id)
         .maybeSingle();
 
-      if (ownedCompany) {
-        company = ownedCompany;
-      } else {
-        // Tenta como staff
-        const { data: staffLink } = await supabase
-          .from('company_staff')
-          .select('company_id')
-          .eq('user_id', user.id)
+      if (staffLink) {
+        const { data: staffCompany } = await supabase
+          .from('companies')
+          .select('id, subscription_plan')
+          .eq('id', staffLink.company_id)
           .maybeSingle();
-
-        if (staffLink) {
-          const { data: staffCompany } = await supabase
-            .from('companies')
-            .select('id, subscription_plan')
-            .eq('id', staffLink.company_id)
-            .maybeSingle();
-          company = staffCompany;
-        }
+        company = staffCompany;
       }
+    }
 
-      if (!company) return;
+    // Carregar todas as funcionalidades (ATIVAS e INATIVAS) - necessário p/ sidebar respeitar is_active
+    const { data: features } = await supabase.from('system_features').select('*');
+    const featuresList = (features || []) as Feature[];
+    setAllFeatures(featuresList);
 
-      setCompanyId(company.id);
-      setCompanyPlan(company.subscription_plan || 'free');
+    // Carregar preços das funcionalidades (apenas preços ativos)
+    const { data: pricing } = await supabase
+      .from('feature_pricing')
+      .select('*')
+      .eq('is_active', true);
 
-      // Carregar todas as funcionalidades
-      const { data: features } = await supabase
-        .from('system_features')
-        .select('*')
-        .eq('is_active', true);
+    const pricingList = (pricing || []) as FeaturePricing[];
+    setFeaturePricing(pricingList);
 
-      const featuresList = (features || []) as Feature[];
-      setAllFeatures(featuresList);
-
-      // Carregar preços das funcionalidades
-      const { data: pricing } = await supabase
-        .from('feature_pricing')
-        .select('*')
-        .eq('is_active', true);
-
-      const pricingList = (pricing || []) as FeaturePricing[];
-      setFeaturePricing(pricingList);
-
-      // Buscar funcionalidades do plano atual
-      const planKey = company.subscription_plan || 'free';
-      const { data: planData } = await supabase
-        .from('subscription_plans')
-        .select('id')
-        .eq('key', planKey)
-        .maybeSingle();
-
-      let planFeatureKeys: string[] = [];
-      if (planData) {
-        const { data: planFeaturesData } = await supabase
-          .from('plan_features')
-          .select('feature_id')
-          .eq('plan_id', planData.id);
-
-        if (planFeaturesData && planFeaturesData.length > 0) {
-          const featureIds = planFeaturesData.map((pf) => pf.feature_id);
-          const { data: featureKeys } = await supabase
-            .from('system_features')
-            .select('key')
-            .in('id', featureIds);
-
-          planFeatureKeys = featureKeys?.map((f) => f.key) || [];
-          setPlanFeatures(planFeatureKeys);
-        } else {
-          setPlanFeatures([]);
-        }
-      } else {
-        setPlanFeatures([]);
-      }
-
-      // Buscar funcionalidades compradas pela empresa
-      const { data: purchased } = await supabase
-        .from('company_features')
-        .select('*')
-        .eq('company_id', company.id)
-        .eq('is_active', true);
-
-      const purchasedList = (purchased || []) as CompanyFeature[];
-      setCompanyFeatures(purchasedList);
+    // Se o usuário não está vinculado a uma empresa (ex: super_admin puro), ainda assim precisamos
+    // manter as features carregadas para o sidebar/UX.
+    if (!company) {
+      setCompanyId(null);
+      setCompanyPlan('free');
+      setPlanFeatures([]);
+      setCompanyFeatures([]);
 
       persistCache({
-        companyId: company.id,
-        companyPlan: company.subscription_plan || 'free',
-        planFeatures: planFeatureKeys,
-        companyFeatures: purchasedList,
+        companyId: null,
+        companyPlan: 'free',
+        planFeatures: [],
+        companyFeatures: [],
         allFeatures: featuresList,
         featurePricing: pricingList,
       });
-    } catch (error) {
-      console.error('Error loading feature access:', error);
-    } finally {
-      setLoading(false);
+
+      return;
     }
-  }, [user, hasCache, persistCache]);
+
+    setCompanyId(company.id);
+    setCompanyPlan(company.subscription_plan || 'free');
+
+    // Buscar funcionalidades do plano atual
+    const planKey = company.subscription_plan || 'free';
+    const { data: planData } = await supabase
+      .from('subscription_plans')
+      .select('id')
+      .eq('key', planKey)
+      .maybeSingle();
+
+    let planFeatureKeys: string[] = [];
+    if (planData) {
+      const { data: planFeaturesData } = await supabase
+        .from('plan_features')
+        .select('feature_id')
+        .eq('plan_id', planData.id);
+
+      if (planFeaturesData && planFeaturesData.length > 0) {
+        const featureIds = planFeaturesData.map((pf) => pf.feature_id);
+        const { data: featureKeys } = await supabase
+          .from('system_features')
+          .select('key, is_active')
+          .in('id', featureIds);
+
+        planFeatureKeys =
+          (featureKeys || [])
+            .filter((f: any) => f.is_active === true)
+            .map((f: any) => f.key) || [];
+
+        setPlanFeatures(planFeatureKeys);
+      } else {
+        setPlanFeatures([]);
+      }
+    } else {
+      setPlanFeatures([]);
+    }
+
+    // Buscar funcionalidades compradas pela empresa
+    const { data: purchased } = await supabase
+      .from('company_features')
+      .select('*')
+      .eq('company_id', company.id)
+      .eq('is_active', true);
+
+    const purchasedList = (purchased || []) as CompanyFeature[];
+    setCompanyFeatures(purchasedList);
+
+    persistCache({
+      companyId: company.id,
+      companyPlan: company.subscription_plan || 'free',
+      planFeatures: planFeatureKeys,
+      companyFeatures: purchasedList,
+      allFeatures: featuresList,
+      featurePricing: pricingList,
+    });
+  } catch (error) {
+    console.error('Error loading feature access:', error);
+  } finally {
+    setLoading(false);
+  }
+}, [user, hasCache, persistCache]);
 
   useEffect(() => {
     if (!user) return;
     loadData();
   }, [user, loadData]);
 
-  // Atualiza o sidebar imediatamente quando uma feature é ativada/desativada no admin
-  useEffect(() => {
-    if (!user) return;
+// Atualiza o sidebar imediatamente quando uma feature é ativada/desativada no admin
+useEffect(() => {
+  if (!user) return;
 
-    const channel = supabase
-      .channel(`feature-access:system-features:${user.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'system_features' },
-        (payload: any) => {
-          const row = (payload.new ?? payload.old) as any;
-          if (!row?.key) return;
+  const channel = supabase
+    .channel(`feature-access:system-features:${user.id}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'system_features' },
+      (payload: any) => {
+        const row = (payload.new ?? payload.old) as any;
+        if (!row?.key) return;
 
-          // Se desativou (ou deletou), remove da lista de features ativas (isso esconde do menu)
-          if (payload.eventType === 'DELETE' || row.is_active === false) {
-            setAllFeatures((prev) => prev.filter((f) => f.key !== row.key && f.id !== row.id));
-          }
+        if (payload.eventType === 'DELETE') {
+          setAllFeatures((prev) => prev.filter((f) => f.key !== row.key && f.id !== row.id));
+        } else {
+          setAllFeatures((prev) => {
+            const next = prev.filter((f) => f.key !== row.key && f.id !== row.id);
+            const normalized: Feature = {
+              id: row.id,
+              key: row.key,
+              name: row.name,
+              description: row.description ?? null,
+              icon: row.icon ?? null,
+              category: row.category ?? null,
+              is_active: row.is_active === true,
+            };
+            return [...next, normalized];
+          });
+        }
 
-          // Se ativou, adiciona/atualiza na lista
-          if (payload.eventType !== 'DELETE' && row.is_active === true) {
-            setAllFeatures((prev) => {
-              const next = prev.filter((f) => f.key !== row.key && f.id !== row.id);
-              const normalized: Feature = {
-                id: row.id,
-                key: row.key,
-                name: row.name,
-                description: row.description ?? null,
-                icon: row.icon ?? null,
-                category: row.category ?? null,
-              };
-              return [...next, normalized];
-            });
-          }
+        // Sincroniza cache e dependências (plano, preços, compras) em background
+        loadData();
+      },
+    )
+    .subscribe();
 
-          // Sincroniza cache e dependências (plano, preços, compras) em background
-          loadData();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, loadData]);
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [user, loadData]);
 
   // Fallback (mesma aba): telas administrativas podem disparar um evento para forçar revalidação
   useEffect(() => {

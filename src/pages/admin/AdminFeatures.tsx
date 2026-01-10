@@ -104,6 +104,7 @@ export default function AdminFeatures() {
   const [companyFeatures, setCompanyFeatures] = useState<CompanyFeature[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [togglingFeatureId, setTogglingFeatureId] = useState<string | null>(null);
   
   // Feature dialog state
   const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
@@ -232,6 +233,28 @@ export default function AdminFeatures() {
     } catch (error: any) {
       console.error('Error deleting feature:', error);
       toast.error(error.message || 'Erro ao excluir');
+    }
+  }
+
+  async function toggleFeatureActive(feature: Feature, nextActive: boolean) {
+    try {
+      setTogglingFeatureId(feature.id);
+
+      const { error } = await supabase
+        .from('system_features')
+        .update({ is_active: nextActive })
+        .eq('id', feature.id);
+
+      if (error) throw error;
+
+      toast.success(nextActive ? 'Funcionalidade ativada' : 'Funcionalidade desativada');
+      loadData();
+      window.dispatchEvent(new Event('feature-access-refresh'));
+    } catch (error: any) {
+      console.error('Error toggling feature active:', error);
+      toast.error(error.message || 'Erro ao atualizar');
+    } finally {
+      setTogglingFeatureId(null);
     }
   }
 
@@ -611,28 +634,41 @@ export default function AdminFeatures() {
                                 <code className="text-xs text-muted-foreground">{feature.key}</code>
                               </div>
                             </div>
-                            <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => openPricingDialog(feature)}
-                              >
-                                <DollarSign className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => openEditFeature(feature)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteFeature(feature)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 pr-1">
+                                <Switch
+                                  checked={feature.is_active}
+                                  onCheckedChange={(v) => toggleFeatureActive(feature, v)}
+                                  disabled={togglingFeatureId === feature.id}
+                                />
+                                <span className="text-xs text-muted-foreground">
+                                  {feature.is_active ? 'Ativa' : 'Inativa'}
+                                </span>
+                              </div>
+
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => openPricingDialog(feature)}
+                                >
+                                  <DollarSign className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => openEditFeature(feature)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteFeature(feature)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </CardHeader>
