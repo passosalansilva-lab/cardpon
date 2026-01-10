@@ -228,14 +228,16 @@ function PublicMenuContent() {
   const [pendingSessionToken, setPendingSessionToken] = useState<string | null>(null);
   
   // Sync session token when URL changes
+  // Initialize session token and table number from URL (only once)
   useEffect(() => {
-    if (sessionTokenFromUrl) {
+    if (sessionTokenFromUrl && !sessionToken) {
       setSessionToken(sessionTokenFromUrl);
     }
-    if (legacyTableFromUrl) {
+    if (legacyTableFromUrl && !tableNumber) {
       setTableNumber(legacyTableFromUrl);
     }
-  }, [sessionTokenFromUrl, legacyTableFromUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
   
   // Check if session token is valid
   useEffect(() => {
