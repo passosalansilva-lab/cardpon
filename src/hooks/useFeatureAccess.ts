@@ -244,6 +244,61 @@ export function useFeatureAccess() {
     loadData();
   }, [user, loadData]);
 
+  // Atualiza o sidebar imediatamente quando uma feature é ativada/desativada no admin
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`feature-access:system-features:${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'system_features' },
+        (payload: any) => {
+          const row = (payload.new ?? payload.old) as any;
+          if (!row?.key) return;
+
+          // Se desativou (ou deletou), remove da lista de features ativas (isso esconde do menu)
+          if (payload.eventType === 'DELETE' || row.is_active === false) {
+            setAllFeatures((prev) => prev.filter((f) => f.key !== row.key && f.id !== row.id));
+          }
+
+          // Se ativou, adiciona/atualiza na lista
+          if (payload.eventType !== 'DELETE' && row.is_active === true) {
+            setAllFeatures((prev) => {
+              const next = prev.filter((f) => f.key !== row.key && f.id !== row.id);
+              const normalized: Feature = {
+                id: row.id,
+                key: row.key,
+                name: row.name,
+                description: row.description ?? null,
+                icon: row.icon ?? null,
+                category: row.category ?? null,
+              };
+              return [...next, normalized];
+            });
+          }
+
+          // Sincroniza cache e dependências (plano, preços, compras) em background
+          loadData();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, loadData]);
+
+  // Fallback (mesma aba): telas administrativas podem disparar um evento para forçar revalidação
+  useEffect(() => {
+    const handler = () => {
+      loadData();
+    };
+
+    window.addEventListener('feature-access-refresh', handler);
+    return () => window.removeEventListener('feature-access-refresh', handler);
+  }, [loadData]);
+
   // Verificação local (rápida, para UI)
   const hasFeatureAccess = useCallback(
     (featureKey: string): FeatureAccess => {

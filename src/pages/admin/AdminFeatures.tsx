@@ -207,6 +207,7 @@ export default function AdminFeatures() {
       setFeatureDialogOpen(false);
       resetFeatureForm();
       loadData();
+      window.dispatchEvent(new Event('feature-access-refresh'));
     } catch (error: any) {
       console.error('Error saving feature:', error);
       toast.error(error.message || 'Erro ao salvar');
@@ -227,6 +228,7 @@ export default function AdminFeatures() {
       if (error) throw error;
       toast.success('Funcionalidade excluída');
       loadData();
+      window.dispatchEvent(new Event('feature-access-refresh'));
     } catch (error: any) {
       console.error('Error deleting feature:', error);
       toast.error(error.message || 'Erro ao excluir');
