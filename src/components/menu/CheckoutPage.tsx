@@ -621,7 +621,8 @@ export function CheckoutPage({ companyId, companyName, companySlug, companyPhone
       }
     }
 
-    if (minOrderValue > 0 && subtotal < minOrderValue) {
+    // Skip minimum order value check for table orders
+    if (!tableNumber && minOrderValue > 0 && subtotal < minOrderValue) {
       toast({
         title: 'Pedido mínimo não atingido',
         description: `O valor mínimo do pedido é R$ ${minOrderValue.toFixed(2)}. Seu carrinho tem R$ ${subtotal.toFixed(2)}.`,

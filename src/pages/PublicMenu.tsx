@@ -505,8 +505,12 @@ function PublicMenuContent() {
     }
   }, [company]);
 
+  // Ref para evitar carregamento duplicado
+  const loadedSlugRef = useRef<string | null>(null);
+  
   useEffect(() => {
-    if (slug) {
+    if (slug && slug !== loadedSlugRef.current) {
+      loadedSlugRef.current = slug;
       setCompanySlug(slug);
       loadCompanyData();
     }
@@ -1636,6 +1640,7 @@ function PublicMenuContent() {
                  const displayPrice = getDisplayPrice(product);
                  const isCombo = comboProductIds.has(product.id);
                  const isSelectableCombo = selectableComboProductIds.has(product.id);
+                 const isAcaiProduct = !!product.category_id && acaiCategoryIds.includes(product.category_id);
                  return (
                    <ProductCard
                      key={product.id}
@@ -1648,6 +1653,7 @@ function PublicMenuContent() {
                      onToggleFavorite={(e) => handleToggleFavoriteClick(product.id, e)}
                      isCombo={isCombo}
                      isSelectableCombo={isSelectableCombo}
+                     isAcaiProduct={isAcaiProduct}
                    />
                  );
                })}
@@ -1663,9 +1669,10 @@ function PublicMenuContent() {
            <div className="space-y-3 px-4">
              {filteredProducts
                .filter((p) => !p.category_id)
-               .map((product) => {
+                .map((product) => {
                  const displayPrice = getDisplayPrice(product);
                  const isSelectableCombo = selectableComboProductIds.has(product.id);
+                 const isAcaiProduct = !!product.category_id && acaiCategoryIds.includes(product.category_id);
                  return (
                    <ProductCard
                      key={product.id}
@@ -1678,6 +1685,7 @@ function PublicMenuContent() {
                      onToggleFavorite={(e) => handleToggleFavoriteClick(product.id, e)}
                      isCombo={comboProductIds.has(product.id)}
                      isSelectableCombo={isSelectableCombo}
+                     isAcaiProduct={isAcaiProduct}
                    />
                  );
                })}
@@ -2012,6 +2020,7 @@ function ProductCard({
   onToggleFavorite,
   isCombo = false,
   isSelectableCombo = false,
+  isAcaiProduct = false,
 }: {
   product: Product;
   onClick: () => void;
@@ -2022,6 +2031,7 @@ function ProductCard({
   onToggleFavorite: (e: React.MouseEvent) => void;
   isCombo?: boolean;
   isSelectableCombo?: boolean;
+  isAcaiProduct?: boolean;
 }) {
   const hasOptions = product.product_options && product.product_options.length > 0;
 
@@ -2116,6 +2126,10 @@ function ProductCard({
                 <span className="text-sm font-semibold text-primary">
                   Monte seu combo
                 </span>
+              ) : isAcaiProduct ? (
+                <span className="text-sm font-semibold text-primary">
+                  Personalizável
+                </span>
               ) : Number(product.price) > 0 ? (
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {product.promotional_price && Number(product.promotional_price) > 0 ? (
@@ -2134,7 +2148,7 @@ function ProductCard({
                   )}
                 </div>
               ) : null}
-              {hasOptions && !isSelectableCombo && (
+              {hasOptions && !isSelectableCombo && !isAcaiProduct && (
                 <p className="text-[11px] text-muted-foreground">Personalizável</p>
               )}
             </div>
