@@ -183,6 +183,13 @@ export function CheckoutPage({ companyId, companyName, companySlug, companyPhone
   } | null>(null);
   const [loadingReferral, setLoadingReferral] = useState(false);
 
+  // Customer referral credits state (for referrers who earned credits)
+  const [customerCredits, setCustomerCredits] = useState<{
+    totalAvailable: number;
+    credits: Array<{ id: string; amount: number; remaining_amount: number }>;
+  } | null>(null);
+  const [loadingCredits, setLoadingCredits] = useState(false);
+
   // PIX Payment state
   const [pixPaymentData, setPixPaymentData] = useState<{
     paymentId: string;
@@ -386,9 +393,57 @@ export function CheckoutPage({ companyId, companyName, companySlug, companyPhone
         setPendingReferralCode(referralCode);
       }
     }
-  }, [loggedCustomer, referralDiscount, referralCode]);
+    // Also clear credits when customer logs out
+    if (!loggedCustomer && customerCredits) {
+      setCustomerCredits(null);
+    }
+  }, [loggedCustomer, referralDiscount, referralCode, customerCredits]);
+
+  // Fetch customer credits when logged in
+  useEffect(() => {
+    const fetchCustomerCredits = async () => {
+      if (!loggedCustomer?.id || !companyId) {
+        setCustomerCredits(null);
+        return;
+      }
+
+      setLoadingCredits(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('get-customer-credits', {
+          body: {
+            companyId,
+            customerId: loggedCustomer.id,
+          },
+        });
+
+        if (error) {
+          console.error('Error fetching customer credits:', error);
+          return;
+        }
+
+        if (data?.totalAvailable > 0) {
+          setCustomerCredits({
+            totalAvailable: data.totalAvailable,
+            credits: data.credits || [],
+          });
+          toast({
+            title: 'Crédito de indicação disponível!',
+            description: `Você tem R$ ${data.totalAvailable.toFixed(2)} em créditos para usar neste pedido.`,
+          });
+        } else {
+          setCustomerCredits(null);
+        }
+      } catch (err) {
+        console.error('Error fetching credits:', err);
+      } finally {
+        setLoadingCredits(false);
+      }
+    };
+
+    fetchCustomerCredits();
+  }, [loggedCustomer?.id, companyId, toast]);
   
-  // Calculate discount (coupon OR referral, not both - coupon takes priority)
+  // Calculate discount (coupon OR referral OR credits, not combined - coupon takes priority)
   const couponDiscount = appliedCoupon 
     ? appliedCoupon.discount_type === 'percentage'
       ? (subtotal * appliedCoupon.discount_value) / 100
@@ -398,8 +453,13 @@ export function CheckoutPage({ companyId, companyName, companySlug, companyPhone
   const referralDiscountAmount = !appliedCoupon && referralDiscount
     ? (subtotal * referralDiscount.discountPercent) / 100
     : 0;
+
+  // Customer credits (only apply if no coupon and no referral discount from URL)
+  const creditsToApply = !appliedCoupon && !referralDiscount && customerCredits
+    ? Math.min(customerCredits.totalAvailable, subtotal) // Can't exceed subtotal
+    : 0;
   
-  const discountAmount = couponDiscount || referralDiscountAmount;
+  const discountAmount = couponDiscount || referralDiscountAmount || creditsToApply;
   
   // No delivery fee for table orders
   const effectiveDeliveryFee = tableNumber ? 0 : deliveryFee;
@@ -1141,6 +1201,26 @@ export function CheckoutPage({ companyId, companyName, companySlug, companyPhone
         }
       }
 
+      // Consume customer credits if applied
+      if (creditsToApply > 0 && customerId) {
+        try {
+          await supabase.functions.invoke('consume-customer-credits', {
+            body: {
+              companyId,
+              customerId,
+              amountToConsume: creditsToApply,
+              orderId: newOrderId,
+            },
+          });
+          console.log('Customer credits consumed successfully:', creditsToApply);
+          // Clear credits state after consumption
+          setCustomerCredits(null);
+        } catch (creditsError) {
+          console.error('Error consuming customer credits:', creditsError);
+          // Don't fail the order, just log
+        }
+      }
+
       // Send confirmation email if customer provided email
       if (data.customerEmail) {
         try {
@@ -1876,6 +1956,18 @@ export function CheckoutPage({ companyId, companyName, companySlug, companyPhone
                   </span>
                 </div>
               </div>
+            ) : customerCredits && customerCredits.totalAvailable > 0 ? (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-success/10 border border-success/20">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-success" />
+                  <span className="font-medium text-success">
+                    Crédito de indicação disponível
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    (R$ {Math.min(customerCredits.totalAvailable, subtotal).toFixed(2)} de desconto)
+                  </span>
+                </div>
+              </div>
             ) : (
               <div className="space-y-2">
                 {loadingReferral && (
@@ -2131,7 +2223,7 @@ export function CheckoutPage({ companyId, companyName, companySlug, companyPhone
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-sm text-success">
                     <span>
-                      Desconto {appliedCoupon ? `(${appliedCoupon.code})` : referralDiscount ? '(Indicação)' : ''}
+                      Desconto {appliedCoupon ? `(${appliedCoupon.code})` : referralDiscount ? '(Indicação)' : creditsToApply > 0 ? '(Créditos)' : ''}
                     </span>
                     <span>-R$ {discountAmount.toFixed(2)}</span>
                   </div>
