@@ -178,7 +178,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const { user, signOut, hasRole, roles, loading, staffCompany } = useAuth();
   const { hasPermission, isStoreStaff, isOwnerOrAdmin } = useStaffPermissions();
-  const { hasFeatureAccess, getFeaturePrice, loading: featuresLoading } = useFeatureAccess();
+  const { hasFeatureAccess, getFeaturePrice, allFeatures, loading: featuresLoading } = useFeatureAccess();
   const { company: userCompany } = useUserCompany();
   const { logoUrl } = useSystemLogo("sidebar");
 
@@ -251,6 +251,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     if (item.featureKey) {
       // Enquanto carrega, mostrar todos os itens para evitar flash
       if (!featuresLoading) {
+        // Verificar se a feature existe e está ativa no sistema
+        const featureExists = allFeatures.some(f => f.key === item.featureKey);
+        
+        // Se a feature não existe na lista de features ativas, esconder do menu
+        if (!featureExists) return false;
+        
         const access = hasFeatureAccess(item.featureKey);
         if (!access.hasAccess) {
           // Se não tem acesso, verificar se a feature tem preço (pode ser comprada)
@@ -273,7 +279,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         items: group.items.filter(canSeeItem),
       }))
       .filter((group) => group.items.length > 0);
-  }, [isSuperAdmin, loading, roles, hasRole, isStoreStaff, isOwnerOrAdmin, hasPermission, hasFeatureAccess, featuresLoading]);
+  }, [isSuperAdmin, loading, roles, hasRole, isStoreStaff, isOwnerOrAdmin, hasPermission, hasFeatureAccess, allFeatures, featuresLoading]);
 
   const userInitials =
     user?.user_metadata?.full_name
