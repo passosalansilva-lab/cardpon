@@ -1,0 +1,42 @@
+-- Enable REPLICA IDENTITY FULL for all main tables (required for realtime with full row data)
+
+ALTER TABLE public.orders REPLICA IDENTITY FULL;
+ALTER TABLE public.order_items REPLICA IDENTITY FULL;
+ALTER TABLE public.products REPLICA IDENTITY FULL;
+ALTER TABLE public.categories REPLICA IDENTITY FULL;
+ALTER TABLE public.delivery_drivers REPLICA IDENTITY FULL;
+ALTER TABLE public.notifications REPLICA IDENTITY FULL;
+ALTER TABLE public.customers REPLICA IDENTITY FULL;
+ALTER TABLE public.customer_addresses REPLICA IDENTITY FULL;
+ALTER TABLE public.coupons REPLICA IDENTITY FULL;
+ALTER TABLE public.promotions REPLICA IDENTITY FULL;
+ALTER TABLE public.order_reviews REPLICA IDENTITY FULL;
+ALTER TABLE public.order_offers REPLICA IDENTITY FULL;
+ALTER TABLE public.inventory_ingredients REPLICA IDENTITY FULL;
+ALTER TABLE public.inventory_movements REPLICA IDENTITY FULL;
+ALTER TABLE public.inventory_purchases REPLICA IDENTITY FULL;
+ALTER TABLE public.combos REPLICA IDENTITY FULL;
+ALTER TABLE public.combo_slots REPLICA IDENTITY FULL;
+ALTER TABLE public.combo_slot_products REPLICA IDENTITY FULL;
+ALTER TABLE public.companies REPLICA IDENTITY FULL;
+
+-- Add tables to realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.order_items;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.categories;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.delivery_drivers;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.customers;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.customer_addresses;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.coupons;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.promotions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.order_reviews;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.order_offers;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.inventory_ingredients;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.inventory_movements;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.inventory_purchases;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.combos;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.combo_slots;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.combo_slot_products;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.companies;

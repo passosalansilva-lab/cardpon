@@ -1,0 +1,214 @@
+project_id = "uyaymtikndembadyljib"
+
+[functions.get-vapid-key]
+verify_jwt = false
+
+[functions.process-nfe]
+verify_jwt = false
+
+[functions.get-unavailable-products]
+verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
+
+[functions.create-subscription]
+verify_jwt = false
+
+[functions.get-mapbox-token]
+verify_jwt = false
+
+[functions.order-tracking-get]
+verify_jwt = false
+
+[functions.find-order-by-code]
+verify_jwt = false
+
+[functions.submit-order-review]
+verify_jwt = false
+
+[functions.lookup-customer]
+verify_jwt = false
+
+[functions.get-customer-addresses]
+verify_jwt = false
+
+[functions.validate-inventory]
+verify_jwt = false
+
+[functions.customer-orders-search]
+verify_jwt = false
+
+[functions.send-order-confirmation]
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.driver-direct-login]
+verify_jwt = false
+
+[functions.send-driver-otp]
+verify_jwt = false
+
+[functions.validate-driver-email]
+verify_jwt = false
+
+[functions.bootstrap-superadmin]
+verify_jwt = false
+
+[functions.cleanup-empty-orders]
+verify_jwt = false
+
+[functions.broadcast-order-offers]
+verify_jwt = false
+
+[functions.accept-order-offer]
+verify_jwt = false
+
+[functions.check-pending-driver-acceptance]
+verify_jwt = false
+
+[functions.create-mercadopago-checkout]
+verify_jwt = false
+
+[functions.mercadopago-webhook]
+verify_jwt = false
+
+[functions.create-mercadopago-subscription]
+verify_jwt = false
+
+[functions.mercadopago-subscription-webhook]
+verify_jwt = false
+
+[functions.check-mercadopago-payment]
+verify_jwt = false
+
+[functions.create-mercadopago-preapproval]
+verify_jwt = false
+
+[functions.cancel-mercadopago-subscription]
+verify_jwt = false
+
+[functions.create-mercadopago-pix-subscription]
+verify_jwt = false
+
+[functions.validate-mercadopago-token]
+verify_jwt = false
+
+[functions.create-order-checkout]
+verify_jwt = false
+
+[functions.order-payment-webhook]
+verify_jwt = false
+
+[functions.get-company-payment-info]
+verify_jwt = false
+
+[functions.create-pix-payment]
+verify_jwt = false
+
+[functions.check-pix-payment]
+verify_jwt = false
+
+[functions.create-card-payment]
+verify_jwt = false
+
+[functions.process-card-payment]
+verify_jwt = false
+
+[functions.get-mercadopago-public-key]
+verify_jwt = false
+
+[functions.menu-share-meta]
+verify_jwt = false
+
+[functions.menu-share-data]
+verify_jwt = false
+
+[functions.smart-suggestions]
+verify_jwt = false
+
+[functions.cancel-mercadopago-payment]
+verify_jwt = false
+
+[functions.manage-store-staff]
+verify_jwt = false
+
+[functions.create-store-staff]
+verify_jwt = false
+
+[functions.verify-recaptcha]
+verify_jwt = false
+
+[functions.validate-picpay-credentials]
+verify_jwt = false
+
+[functions.create-picpay-pix]
+verify_jwt = false
+
+[functions.picpay-webhook]
+verify_jwt = false
+
+[functions.check-picpay-payment]
+verify_jwt = false
+
+[functions.delete-orphan-user]
+verify_jwt = false
+
+[functions.delete-company]
+verify_jwt = false
+
+[functions.pos-upsert-customer]
+verify_jwt = false
+
+[functions.create-feature-checkout]
+verify_jwt = false
+
+[functions.feature-purchase-webhook]
+verify_jwt = false
+
+[functions.send-verification-code]
+verify_jwt = false
+
+[functions.verify-email-code]
+verify_jwt = false
+
+[functions.create-verified-user]
+verify_jwt = false
+
+[functions.og-share]
+verify_jwt = false
+
+[functions.check-table-session]
+verify_jwt = false
+
+[functions.check-table-by-number]
+verify_jwt = false
+
+[functions.process-driver-queue]
+verify_jwt = false
+
+[functions.delete-customer-address]
+verify_jwt = false
+
+[functions.get-customer-referral]
+verify_jwt = false
+
+[functions.validate-referral-code]
+verify_jwt = false
+
+[functions.process-referral-discount]
+verify_jwt = false
+
+[functions.update-session-customer-count]
+verify_jwt = false
+
+[functions.send-company-approval-email]
+verify_jwt = false
+
+[functions.send-inactivity-cancellation-email]
+verify_jwt = false
+
+[functions.check-inactive-companies]
+verify_jwt = false
