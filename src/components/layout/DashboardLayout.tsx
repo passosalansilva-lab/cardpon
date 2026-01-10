@@ -96,18 +96,18 @@ const navGroups: NavGroup[] = [
   {
     title: "Principal",
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "store_owner"], permission: "can_view_reports" },
-      { label: "Pedidos", href: "/dashboard/orders", icon: ClipboardList, roles: ["store_owner", "delivery_driver", "store_staff"], permission: "can_manage_orders" },
-      { label: "Cozinha (KDS)", href: "/dashboard/kds", icon: ChefHat, roles: ["store_owner", "store_staff"], permission: "can_manage_orders" },
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "store_owner"], permission: "can_view_reports", featureKey: "dashboard" },
+      { label: "Pedidos", href: "/dashboard/orders", icon: ClipboardList, roles: ["store_owner", "delivery_driver", "store_staff"], permission: "can_manage_orders", featureKey: "orders" },
+      { label: "Cozinha (KDS)", href: "/dashboard/kds", icon: ChefHat, roles: ["store_owner", "store_staff"], permission: "can_manage_orders", featureKey: "kds" },
       { label: "Mesas", href: "/dashboard/tables", icon: UtensilsCrossed, roles: ["store_owner", "store_staff"], permission: "can_manage_orders", featureKey: "tables" },
     ],
   },
   {
     title: "Minha Loja",
     items: [
-      { label: "Dados da Loja", href: "/dashboard/store", icon: Store, roles: ["store_owner"] },
-      { label: "Cardápio", href: "/dashboard/menu", icon: UtensilsCrossed, roles: ["store_owner", "store_staff"], permission: "can_manage_menu" },
-      { label: "Estoque", href: "/dashboard/inventory", icon: Package, roles: ["store_owner", "store_staff"], permission: "can_manage_inventory" },
+      { label: "Dados da Loja", href: "/dashboard/store", icon: Store, roles: ["store_owner"], featureKey: "store_settings" },
+      { label: "Cardápio", href: "/dashboard/menu", icon: UtensilsCrossed, roles: ["store_owner", "store_staff"], permission: "can_manage_menu", featureKey: "menu" },
+      { label: "Estoque", href: "/dashboard/inventory", icon: Package, roles: ["store_owner", "store_staff"], permission: "can_manage_inventory", featureKey: "inventory" },
       { label: "Notas Fiscais", href: "/dashboard/nfe", icon: FileText, roles: ["store_owner"], featureKey: "nfe" },
     ],
   },
@@ -132,17 +132,17 @@ const navGroups: NavGroup[] = [
   {
     title: "Configurações",
     items: [
-      { label: "Planos", href: "/dashboard/plans", icon: CreditCard, roles: ["store_owner"] },
-      { label: "Notificações", href: "/dashboard/notifications", icon: Bell, roles: ["super_admin", "store_owner", "store_staff"] },
-      { label: "Sons e Alertas", href: "/dashboard/notifications/sounds", icon: Volume2, roles: ["store_owner"] },
+      { label: "Planos", href: "/dashboard/plans", icon: CreditCard, roles: ["store_owner"], featureKey: "plans" },
+      { label: "Notificações", href: "/dashboard/notifications", icon: Bell, roles: ["super_admin", "store_owner", "store_staff"], featureKey: "notifications" },
+      { label: "Sons e Alertas", href: "/dashboard/notifications/sounds", icon: Volume2, roles: ["store_owner"], featureKey: "notification_sounds" },
       { label: "Logs de Atividade", href: "/dashboard/logs", icon: History, roles: ["store_owner"], featureKey: "activity_logs" },
-      { label: "Configurações", href: "/dashboard/settings", icon: Settings, roles: ["super_admin", "store_owner", "delivery_driver", "store_staff"] },
+      { label: "Configurações", href: "/dashboard/settings", icon: Settings, roles: ["super_admin", "store_owner", "delivery_driver", "store_staff"], featureKey: "settings" },
     ],
   },
   {
     title: "Suporte",
     items: [
-      { label: "Ajuda", href: "/dashboard/help", icon: HelpCircle, roles: ["super_admin", "store_owner", "delivery_driver", "store_staff"] },
+      { label: "Ajuda", href: "/dashboard/help", icon: HelpCircle, roles: ["super_admin", "store_owner", "delivery_driver", "store_staff"], featureKey: "help" },
     ],
   },
 ];
