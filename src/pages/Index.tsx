@@ -46,6 +46,59 @@ const features = [
   { icon: Zap, title: 'Notificações Push', description: 'Alertas instantâneos para novos pedidos e atualizações.' },
 ];
 
+function FeaturesMegaMenu() {
+  return (
+    <div className="w-[760px] rounded-2xl bg-white border border-orange-200 shadow-2xl backdrop-blur-xl p-6">
+      
+      <div className="grid grid-cols-3 gap-4">
+        {features.map((feature) => (
+          <div
+            key={feature.title}
+            className="flex gap-4 p-4 rounded-xl hover:bg-orange-50 transition group cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shrink-0">
+              <feature.icon className="h-5 w-5 text-white" />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-semibold text-gray-900 text-sm">
+                  {feature.title}
+                </h4>
+
+                {"isNew" in feature && feature.isNew && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold">
+                    Novo
+                  </span>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-500 leading-snug mt-1">
+                {feature.description}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="mt-6 border-t border-orange-100 pt-4 flex items-center justify-between">
+        <span className="text-sm text-gray-500">
+          Plataforma completa para delivery
+        </span>
+
+        <a
+          href="#features"
+          className="text-sm font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-2"
+        >
+          Ver todas
+          <ArrowRight className="h-4 w-4" />
+        </a>
+      </div>
+    </div>
+  );
+}
+
 const integrations = [
   { name: 'Mercado Pago', description: 'Pix, cartão e boleto', icon: CreditCard },
   { name: 'PicPay', description: 'Receba via Pix', icon: Receipt },
@@ -82,6 +135,9 @@ interface Plan {
   features: string[] | null;
   revenue_limit: number | null;
 }
+
+
+
 
 export default function Index() {
   const { user, hasRole } = useAuth();
@@ -178,46 +234,61 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 via-white to-white font-sans antialiased">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-orange-100/60 bg-white/95 backdrop-blur-sm">
-        <div className="container max-w-6xl mx-auto px-6 flex h-16 items-center justify-between">
-          <Link to={getDashboardPath()} className="flex items-center">
-            <ChromaKeyImage
-              src={logoUrl}
-              alt="Cardápio On"
-              className="h-10 sm:h-12 w-auto"
-            />
-          </Link>
-          
-          <nav className="hidden md:flex items-center gap-10">
-            <a href="#features" className="text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors">
-              Funcionalidades
-            </a>
-            <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors">
-              Planos
-            </a>
-            <a href="#contact" className="text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors">
-              Contato
-            </a>
-          </nav>
+<header className="sticky top-0 z-50 border-b border-orange-100/60 bg-white/95 backdrop-blur-sm">
+  <div className="container max-w-6xl mx-auto px-6 flex h-16 items-center justify-between">
+    
+    {/* Logo */}
+    <Link to={getDashboardPath()} className="flex items-center">
+      <ChromaKeyImage
+        src={logoUrl}
+        alt="Cardápio On"
+        className="h-10 sm:h-12 w-auto"
+      />
+    </Link>
 
-          <div className="flex items-center gap-3">
-            {user ? (
-              <Button asChild size="sm" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold shadow-lg shadow-orange-500/25">
-                <Link to={getDashboardPath()}>Acessar Painel</Link>
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" asChild size="sm" className="hidden sm:inline-flex text-gray-600 font-medium hover:text-orange-600 hover:bg-orange-50">
-                  <Link to="/auth?mode=login">Entrar</Link>
-                </Button>
-                <Button asChild size="sm" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold shadow-lg shadow-orange-500/25">
-                  <Link to="/auth?mode=signup">Começar Grátis</Link>
-                </Button>
-              </>
-            )}
-          </div>
+    {/* Navigation */}
+    <nav className="hidden md:flex items-center gap-10 relative">
+      
+      {/* FUNCIONALIDADES – Mega Menu */}
+      <div className="relative group">
+        <span className="text-sm font-medium text-gray-600 hover:text-orange-600 cursor-pointer flex items-center gap-1">
+          Funcionalidades
+        </span>
+
+        {/* Dropdown */}
+        <div className="absolute left-1/2 top-full pt-4 -translate-x-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+         <FeaturesMegaMenu />
         </div>
-      </header>
+      </div>
+
+      <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors">
+        Planos
+      </a>
+      <a href="#contact" className="text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors">
+        Contato
+      </a>
+    </nav>
+
+    {/* Right actions */}
+    <div className="flex items-center gap-3">
+      {user ? (
+        <Button asChild size="sm" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold shadow-lg shadow-orange-500/25">
+          <Link to={getDashboardPath()}>Acessar Painel</Link>
+        </Button>
+      ) : (
+        <>
+          <Button variant="ghost" asChild size="sm" className="hidden sm:inline-flex text-gray-600 font-medium hover:text-orange-600 hover:bg-orange-50">
+            <Link to="/auth?mode=login">Entrar</Link>
+          </Button>
+          <Button asChild size="sm" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold shadow-lg shadow-orange-500/25">
+            <Link to="/auth?mode=signup">Começar Grátis</Link>
+          </Button>
+        </>
+      )}
+    </div>
+  </div>
+</header>
+
 
       {/* Hero */}
       <section className="py-20 lg:py-28 overflow-hidden">
@@ -394,6 +465,7 @@ export default function Index() {
         </div>
       </section>
 
+            
       {/* Integrations */}
       <section className="py-20 bg-orange-50/50">
         <div className="container max-w-5xl mx-auto px-6">
