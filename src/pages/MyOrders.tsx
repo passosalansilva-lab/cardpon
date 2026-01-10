@@ -410,15 +410,24 @@ export default function MyOrders() {
       style={companyPrimaryHsl ? ({ "--primary": companyPrimaryHsl } as any) : undefined}
     >
       {/* Top bar similar to cardápio */}
-      <header className="sticky top-0 z-20 bg-gradient-to-b from-primary/90 to-primary/80 text-primary-foreground shadow-lg">
-        <div className="max-w-4xl mx-auto flex items-center justify-between px-4 py-3">
-          <div className="flex-1 text-center -ml-9">
-            <h1 className="font-display font-semibold text-base">Meus pedidos</h1>
-            <p className="text-[11px] text-primary-foreground/80">Acompanhe seus pedidos em tempo real</p>
-          </div>
-          <div className="w-9" />
-        </div>
-      </header>
+    <header className="sticky top-0 z-20 bg-gradient-to-b from-primary/95 to-primary/85 text-primary-foreground shadow-md backdrop-blur">
+  <div className="max-w-4xl mx-auto px-4">
+    <div className="h-14 flex items-center justify-center relative">
+
+      {/* Título */}
+      <div className="text-center">
+        <h1 className="font-display font-semibold text-sm sm:text-base leading-tight">
+          Meus pedidos
+        </h1>
+        <p className="text-[11px] text-primary-foreground/80">
+          Acompanhe seus pedidos em tempo real
+        </p>
+      </div>
+
+    </div>
+  </div>
+</header>
+
 
       <main className="max-w-4xl mx-auto px-4 pt-5 space-y-6 animate-fade-in">
         {/* Botão voltar ao cardápio no topo */}
