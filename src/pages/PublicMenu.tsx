@@ -48,7 +48,7 @@ import { CustomerCountModal } from '@/components/tables/CustomerCountModal';
 import { MyTicketsModal } from '@/components/menu/MyTicketsModal';
 import { usePizzaConfig } from '@/hooks/usePizzaConfig';
 import { useSmartSuggestions } from '@/hooks/useSmartSuggestions';
-import { cn } from '@/lib/utils';
+import { cn, isLightColor } from '@/lib/utils';
 import { checkStoreOpen, formatTodayHours } from '@/lib/storeHours';
 import { filterCategoriesByDayPeriod, DayPeriod, CategoryDayPeriod } from '@/lib/dayPeriods';
 import { OperatingHours } from '@/components/store/OperatingHoursEditor';
@@ -1284,9 +1284,13 @@ function PublicMenuContent() {
                   className={cn(
                     "h-5 px-2 flex items-center gap-1 rounded-full text-[11px]",
                     isActuallyOpen ? "badge-open" : "badge-closed",
+                    company.primary_color && !isLightColor(company.primary_color) && "text-white/90"
                   )}
                 >
-                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span className={cn(
+                    "inline-flex h-1.5 w-1.5 rounded-full",
+                    isActuallyOpen ? "bg-emerald-400" : "bg-red-400"
+                  )} />
                   {isActuallyOpen ? "Aberto agora" : "Fechado"}
                 </Badge>
 
