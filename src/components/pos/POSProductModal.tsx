@@ -70,12 +70,15 @@ export function POSProductModal({ product, open, onClose, onAddToCart }: POSProd
   const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>([]);
   const [optionGroups, setOptionGroups] = useState<OptionGroup[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isAcaiProduct, setIsAcaiProduct] = useState(false);
+  const [selectedAcaiSizeId, setSelectedAcaiSizeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && product) {
       setQuantity(1);
       setNotes('');
       setSelectedOptions([]);
+      setSelectedAcaiSizeId(null);
       loadOptionGroups();
     }
   }, [open, product?.id]);
@@ -85,7 +88,10 @@ export function POSProductModal({ product, open, onClose, onAddToCart }: POSProd
 
     setLoading(true);
     try {
-      const [groupsResult, optionsResult] = await Promise.all([
+      const categoryId = product.category_id;
+
+      // Carregar grupos e opções normais + verificar se é açaí
+      const [groupsResult, optionsResult, acaiCategoryResult, acaiSizesResult] = await Promise.all([
         supabase
           .from('product_option_groups')
           .select('*')
@@ -97,13 +103,34 @@ export function POSProductModal({ product, open, onClose, onAddToCart }: POSProd
           .eq('product_id', product.id)
           .eq('is_available', true)
           .order('sort_order'),
+        categoryId
+          ? supabase
+              .from('acai_categories')
+              .select('category_id')
+              .eq('category_id', categoryId)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null } as any),
+        categoryId
+          ? supabase
+              .from('acai_category_sizes')
+              .select('id, name, base_price, sort_order')
+              .eq('category_id', categoryId)
+              .order('sort_order')
+          : Promise.resolve({ data: null, error: null } as any),
       ]);
 
       const { data: groupsData, error: groupsError } = groupsResult;
       const { data: optionsData, error: optionsError } = optionsResult;
+      const { data: acaiCategoryData } = acaiCategoryResult as any;
+      const { data: acaiSizesData } = acaiSizesResult as any;
 
       if (groupsError) throw groupsError;
       if (optionsError) throw optionsError;
+
+      // Verificar se é categoria de açaí com tamanhos configurados
+      const isAcai = !!acaiCategoryData;
+      const hasAcaiSizes = isAcai && acaiSizesData && Array.isArray(acaiSizesData) && acaiSizesData.length > 0;
+      setIsAcaiProduct(hasAcaiSizes);
 
       // Group options by group
       const groups: OptionGroup[] = (groupsData || []).map((group: any) => ({
@@ -133,6 +160,89 @@ export function POSProductModal({ product, open, onClose, onAddToCart }: POSProd
         });
       }
 
+      // Se for açaí com tamanhos, adicionar grupo de tamanhos e carregar opções por tamanho
+      if (hasAcaiSizes) {
+        const acaiSizeIds = (acaiSizesData as any[]).map((s) => s.id);
+
+        // Buscar grupos de opções para todos os tamanhos de açaí
+        const { data: acaiOptionGroupsData, error: acaiGroupsError } = await supabase
+          .from('acai_size_option_groups')
+          .select('*')
+          .in('size_id', acaiSizeIds)
+          .order('sort_order');
+
+        if (acaiGroupsError) throw acaiGroupsError;
+
+        // Buscar opções para todos os grupos
+        let acaiOptionsData: any[] = [];
+        if (acaiOptionGroupsData && acaiOptionGroupsData.length > 0) {
+          const groupIds = acaiOptionGroupsData.map((g: any) => g.id);
+          const { data: optData, error: optError } = await supabase
+            .from('acai_size_options')
+            .select('*')
+            .in('group_id', groupIds)
+            .eq('is_available', true)
+            .order('sort_order');
+
+          if (optError) throw optError;
+          acaiOptionsData = optData || [];
+        }
+
+        // Criar grupo de seleção de tamanho
+        const acaiSizeGroup: OptionGroup = {
+          id: 'acai-size',
+          name: 'Tamanho',
+          description: 'Selecione o tamanho do açaí',
+          is_required: true,
+          min_selections: 1,
+          max_selections: 1,
+          selection_type: 'single',
+          sort_order: -2,
+          free_quantity_limit: 0,
+          extra_unit_price: 0,
+          options: (acaiSizesData as any[]).map((size) => ({
+            id: size.id,
+            name: size.name,
+            price_modifier: Number(size.base_price ?? 0),
+            is_required: true,
+            is_available: true,
+            sort_order: size.sort_order ?? 0,
+            group_id: 'acai-size',
+          })),
+        };
+
+        groups.unshift(acaiSizeGroup);
+
+        // Adicionar grupos de opções de açaí (por tamanho)
+        (acaiOptionGroupsData || []).forEach((acaiGroup: any) => {
+          const groupOptions = acaiOptionsData.filter((o: any) => o.group_id === acaiGroup.id);
+          const enhancedGroup: OptionGroup & { _acaiSizeId?: string } = {
+            id: `acai-group-${acaiGroup.id}`,
+            name: acaiGroup.name,
+            description: acaiGroup.description,
+            is_required: acaiGroup.min_selections > 0,
+            min_selections: acaiGroup.min_selections,
+            max_selections: acaiGroup.max_selections,
+            selection_type: acaiGroup.max_selections === 1 ? 'single' : 'multiple',
+            sort_order: acaiGroup.sort_order,
+            free_quantity_limit: acaiGroup.free_quantity ?? 0,
+            extra_unit_price: acaiGroup.extra_price_per_item ?? 0,
+            options: groupOptions.map((opt: any) => ({
+              id: opt.id,
+              name: opt.name,
+              description: opt.description,
+              price_modifier: Number(opt.price_modifier ?? 0),
+              is_required: false,
+              is_available: true,
+              sort_order: opt.sort_order ?? 0,
+              group_id: `acai-group-${acaiGroup.id}`,
+            })),
+            _acaiSizeId: acaiGroup.size_id,
+          };
+          groups.push(enhancedGroup);
+        });
+      }
+
       setOptionGroups(groups);
     } catch (error) {
       console.error('Error loading options:', error);
@@ -146,6 +256,25 @@ export function POSProductModal({ product, open, onClose, onAddToCart }: POSProd
 
   const handleSingleSelect = (group: OptionGroup, option: ProductOption) => {
     const filtered = selectedOptions.filter((o) => o.groupId !== group.id);
+    
+    // Se selecionou um tamanho de açaí, atualiza o estado e limpa opções de outros tamanhos
+    if (group.id === 'acai-size') {
+      setSelectedAcaiSizeId(option.id);
+      // Limpar opções de grupos de açaí anteriores
+      const nonAcaiOptions = selectedOptions.filter((o) => !o.groupId.startsWith('acai-group-'));
+      setSelectedOptions([
+        ...nonAcaiOptions,
+        {
+          groupId: group.id,
+          groupName: group.name,
+          optionId: option.id,
+          name: option.name,
+          priceModifier: option.price_modifier,
+        },
+      ]);
+      return;
+    }
+    
     setSelectedOptions([
       ...filtered,
       {
@@ -157,6 +286,14 @@ export function POSProductModal({ product, open, onClose, onAddToCart }: POSProd
       },
     ]);
   };
+
+  // Filtrar grupos visíveis (açaí mostra apenas grupos do tamanho selecionado)
+  const visibleOptionGroups = optionGroups.filter((group) => {
+    if (!group.id.startsWith('acai-group-')) return true;
+    if (!selectedAcaiSizeId) return false;
+    const groupWithMeta = group as OptionGroup & { _acaiSizeId?: string };
+    return groupWithMeta._acaiSizeId === selectedAcaiSizeId;
+  });
 
   const handleMultipleToggle = (group: OptionGroup, option: ProductOption) => {
     const isSelected = selectedOptions.some((o) => o.optionId === option.id);
@@ -236,7 +373,7 @@ export function POSProductModal({ product, open, onClose, onAddToCart }: POSProd
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between pr-6">
             <span className="truncate">{product.name}</span>
