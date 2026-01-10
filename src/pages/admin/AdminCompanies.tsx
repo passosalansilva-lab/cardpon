@@ -265,6 +265,22 @@ export default function AdminCompanies() {
             }
           }
 
+          // Se for suspensão, enviar email de notificação
+          if (actionModal.action === 'suspend') {
+            try {
+              await supabase.functions.invoke('send-company-suspension-email', {
+                body: {
+                  companyId: actionModal.company.id,
+                  ownerId: actionModal.company.owner_id,
+                  reason: 'Suspensão realizada pelo administrador do sistema.',
+                },
+              });
+            } catch (emailError) {
+              console.error('Error sending suspension email:', emailError);
+              // Não bloqueia a suspensão se o email falhar
+            }
+          }
+
           toast({
             title: 'Sucesso',
             description: `Empresa ${actionModal.action === 'approve' ? 'aprovada' : 'suspensa'} com sucesso`,
